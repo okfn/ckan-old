@@ -40,7 +40,7 @@ class TestPackageController(TestController2):
         assert 'Packages - New' in res
 
     def test_read(self):
-        name = 'annakarenina'
+        name = u'annakarenina'
         offset = url_for(controller='package', action='read', id=name)
         res = self.app.get(offset)
         # only retrieve after app has been called
@@ -117,8 +117,10 @@ class TestPackageControllerEdit(TestController2):
         self.editpkg_name = u'editpkgtest'
         self.editpkg = model.Package(name=self.editpkg_name)
         self.editpkg.url = u'editpkgurl.com'
-        self.editpkg.notes= u'this is editpkg'
+        self.editpkg.notes = u'Some notes'
+
         model.Session.commit()
+        self.pkgid = self.editpkg.id
         model.Session.remove()
         offset = url_for(controller='package', action='edit', id=self.editpkg.name)
         self.res = self.app.get(offset)
@@ -147,32 +149,33 @@ class TestPackageControllerEdit(TestController2):
         newurl = 'http://www.editpkgnewurl.com'
         new_download_url = newurl + '/download/'
         newlicense = 'Non-OKD Compliant::Other'
+        newlicenseid = model.License.by_name(newlicense).id
         newversion = '0.9b'
         fv = self.res.forms[0]
-        fv['title'] =  new_title
-        fv['url'] =  newurl
-        fv['download_url'] =  new_download_url
-        fv['licenses'] =  newlicense
-        fv['version'] = newversion
+        prefix = 'Package-%s-' % self.pkgid
+        fv[prefix + 'title'] =  new_title
+        fv[prefix + 'url'] =  newurl
+        fv[prefix + 'download_url'] =  new_download_url
+        fv[prefix + 'license_id'] =  newlicenseid
+        fv[prefix + 'version'] = newversion
         res = fv.submit('commit')
         # get redirected ...
         res = res.follow()
-        print str(self.res)
-        assert 'Packages - %s' % self.editpkg_name in res
+        assert 'Packages - %s' % self.editpkg_name in res, res
         pkg = model.Package.by_name(self.editpkg.name)
         assert pkg.title == new_title 
         assert pkg.url == newurl
         assert pkg.download_url == new_download_url
         assert pkg.version == newversion
-        licenses = [ pkg.license.name ]
-        assert newlicense in licenses
+        assert newlicense == pkg.license.name
 
     def test_edit_2(self):
         # testing tag updating
         newtags = [self.newtagname]
         tagvalues = ' '.join(newtags)
         fv = self.res.forms[0]
-        fv['tags'] =  tagvalues
+        prefix = 'Package-%s-' % self.pkgid
+        fv[prefix + 'tags'] =  tagvalues
         exp_log_message = 'test_edit_2: making some changes'
         fv['log_message'] =  exp_log_message
         res = fv.submit('commit')
@@ -197,12 +200,137 @@ class TestPackageControllerEdit(TestController2):
 Hello world.
 '''
         fv = self.res.forms[0]
-        fv['url'] =  newurl
-        fv['notes'] =  newnotes
+        prefix = 'Package-%s-' % self.pkgid
+        fv[prefix + 'url'] =  newurl
+        fv[prefix + 'notes'] =  newnotes
         res = fv.submit('preview')
         print str(res)
         assert 'Packages - Edit' in res
         assert 'Preview' in res
+
+    def test_edit_bad_name(self):
+        fv = self.res.forms[0]
+        prefix = 'Package-%s-' % self.pkgid
+        fv[prefix + 'name'] = u'a' # invalid name
+        res = fv.submit('commit')
+        assert 'Error' in res, res
+        assert 'Package name must be at least 2 characters long' in res, res
+        # Ensure there is an error at the top of the form and by the field
+        assert 'class="form-errors"' in res, res
+        assert 'class="field_error"' in res, res
+
+    def test_edit_all_fields(self):
+        # Create new item
+        rev = model.repo.new_revision()
+        pkg_name = u'new_editpkgtest'
+        pkg = model.Package(name=pkg_name)
+        pkg.title = u'This is a Test Title'
+        pkg.url = u'editpkgurl.com'
+        pkg.download_url = u'editpkgurl2.com'
+        pkg.notes= u'this is editpkg'
+        pkg.version = '2.2'
+        pkg.tags = [model.Tag(name=u'one'), model.Tag(name=u'two')]
+        tags_txt = ' '.join([tag.name for tag in pkg.tags])
+        pkg.license = model.License.byName(u'OKD Compliant::Other')
+        
+        model.Session.commit()
+#        model.Session.remove()
+
+        offset = url_for(controller='package', action='edit', id=pkg.name)
+        res = self.app.get(offset)
+        assert 'Packages - Edit' in res
+        
+        # Check form is correctly filled
+        prefix = 'Package-%s-' % pkg.id
+        assert 'name="%sname" type="text" value="%s"' % (prefix, pkg.name) in res, res
+        assert 'name="%stitle" type="text" value="%s"' % (prefix, pkg.title) in res, res
+        assert 'name="%sversion" type="text" value="%s"' % (prefix, pkg.version) in res, res
+        assert 'name="%surl" type="text" value="%s"' % (prefix, pkg.url) in res, res
+        assert 'name="%sdownload_url" type="text" value="%s"' % (prefix, pkg.download_url) in res, res
+        assert 'name="%snotes" type="text" value="%s"' % (prefix, pkg.notes) in res, res
+        license_html = '<option value="%s" selected>%s' % (pkg.license_id, pkg.license.name)
+        assert license_html in res, str(res) + license_html
+        tags_html = 'name="%stags" size="60" type="text" value="%s"' % (prefix, tags_txt)
+        assert tags_html in res, str(res) + tags_html
+
+        # Amend form
+        name = 'test_name'
+        title = 'Test Title'
+        version = '1.1'
+        url = 'http://something.com/somewhere.zip'
+        download_url = 'http://something.com/somewhere-else.zip'
+        notes = 'Very important'
+        license_id = 4
+        license = 'OKD Compliant::Creative Commons CCZero'
+        tags = ('tag1', 'tag2', 'tag3')
+        tags_txt = ' '.join(tags)
+        assert not model.Package.by_name(name)
+        fv = res.forms[0]
+        prefix = 'Package-%s-' % pkg.id
+        fv[prefix+'name'] = name
+        fv[prefix+'title'] = title
+        fv[prefix+'version'] = version
+        fv[prefix+'url'] = url
+        fv[prefix+'download_url'] = download_url
+        fv[prefix+'notes'] = notes
+        fv[prefix+'license_id'] = license_id
+        fv[prefix+'tags'] = tags_txt
+        res = fv.submit('preview')
+        assert not 'Error' in res, res
+
+        # Check preview is correct
+        res1 = str(res).replace('</strong>', '')
+        assert 'Preview' in res
+        assert 'Title: %s' % title in res1, res
+        assert 'Version: %s' % version in res1, res
+        assert 'Url: <a href="%s">' % url in res1, res
+        assert 'Download Url: <a href="%s">' % download_url in res1, res
+        assert '<p>%s' % notes in res1, res
+        assert 'Licenses: %s' % license in res1, res
+        tags_html_list = ['        <a href="/tag/read/%s">%s</a>' % (tag, tag) for tag in tags]
+        tags_html = '\n'.join(tags_html_list)
+        assert 'Tags:\n%s' % tags_html in res1, res1 + tags_html
+
+        # Check form is correctly filled
+        assert 'name="%stitle" type="text" value="%s"' % (prefix, title) in res, res
+        assert 'name="%sversion" type="text" value="%s"' % (prefix, version) in res, res
+        assert 'name="%surl" type="text" value="%s"' % (prefix, url) in res, res
+        assert 'name="%sdownload_url" type="text" value="%s"' % (prefix, download_url) in res, res
+        assert 'name="%snotes" type="text" value="%s"' % (prefix, notes) in res, res
+        license_html = '<option value="%s" selected>%s' % (license_id, license)
+        assert license_html in res, str(res) + license_html
+        assert 'name="%stags" size="60" type="text" value="%s"' % (prefix, tags_txt) in res, res
+
+        res = fv.submit('commit')
+        assert not 'Error' in res, res
+        res = res.follow()
+        res1 = str(res).replace('</strong>', '')
+        assert 'Packages - %s' % name in res1, res1
+        assert 'Package: %s' % name in res1, res1
+        assert 'Title: %s' % title in res1, res1
+        assert 'Version: %s' % version in res1, res1
+        assert 'Url: <a href="%s">' % url in res1, res
+        assert 'Download Url: <a href="%s">' % download_url in res1, res
+        assert '<p>%s' % notes in res1, res1
+        assert 'Licenses: %s' % license in res1, res1
+        assert 'Tags:\n%s' % tags_html in res1, res1 + tags_html
+        pkg = model.Package.by_name(name)
+        assert pkg.name == name
+        assert pkg.title == title
+        assert pkg.version == version
+        assert pkg.url == url
+        assert pkg.download_url == download_url
+        assert pkg.notes == notes
+        assert pkg.license_id == license_id
+        saved_tagnames = [str(tag.name) for tag in pkg.tags]
+        assert saved_tagnames == list(tags)
+
+        # for some reason environ['REMOTE_ADDR'] is undefined
+        rev = model.Revision.youngest()
+        assert rev.author == 'Unknown IP Address'
+        # TODO: reinstate once fixed in code
+        exp_log_message = 'Creating package %s' % name
+        # assert rev.message == exp_log_message
 
 
 class TestPackageControllerNew(TestController2):
@@ -219,38 +347,144 @@ class TestPackageControllerNew(TestController2):
         model.Session.remove()
 
     def test_new(self):
-        # TODO: test creating a package with an existing name results in error
+        assert not model.Package.by_name('annakarenina')
         offset = url_for(controller='package', action='new')
         res = self.app.get(offset)
         assert 'Packages - New' in res
-        print res
         fv = res.forms[0]
-        fv['name'] = self.pkgname
-        fv['title'] = self.pkgtitle
+        prefix = 'Package--'
+        fv[prefix + 'name'] = 'annakarenina'
+        res = fv.submit('commit')
+        assert not 'Error' in res, res
+
+    def test_new_all_fields(self):
+        name = 'test_name2'
+        title = 'Test Title'
+        version = '1.1'
+        url = 'http://something.com/somewhere.zip'
+        download_url = 'http://something.com/somewhere-else.zip'
+        notes = 'Very important'
+        license_id = 4
+        license = 'OKD Compliant::Creative Commons CCZero'
+        tags = ('tag1', 'tag2', 'tag3')
+        tags_txt = ' '.join(tags)
+        assert not model.Package.by_name(name)
+        offset = url_for(controller='package', action='new')
+        res = self.app.get(offset)
+        assert 'Packages - New' in res
+        fv = res.forms[0]
+        prefix = 'Package--'
+        fv[prefix+'name'] = name
+        fv[prefix+'title'] = title
+        fv[prefix+'version'] = version
+        fv[prefix+'url'] = url
+        fv[prefix+'download_url'] = download_url
+        fv[prefix+'notes'] = notes
+        fv[prefix+'license_id'] = license_id
+        fv[prefix+'tags'] = tags_txt
         res = fv.submit('preview')
+        assert not 'Error' in res, res
+
+        # Check preview is correct
+        res1 = str(res).replace('</strong>', '')
         assert 'Preview' in res
-        fv = res.forms[0]
-        res = fv.submit('commit', status=[302])
+        assert 'Title: %s' % title in res1, res
+        assert 'Version: %s' % version in res1, res
+        assert 'Url: <a href="%s">' % url in res1, res
+        assert 'Download Url: <a href="%s">' % download_url in res1, res
+        assert '<p>%s' % notes in res1, res
+        assert 'Licenses: %s' % license in res1, res
+        tags_html_list = ['        <a href="/tag/read/%s">%s</a>' % (tag, tag) for tag in tags]
+        tags_html = '\n'.join(tags_html_list)
+        assert 'Tags:\n%s' % tags_html in res1, res1 + tags_html
+
+        # Check form is correctly filled
+        assert 'name="Package--title" type="text" value="%s"' % title in res, res
+        assert 'name="Package--version" type="text" value="%s"' % version in res, res
+        assert 'name="Package--url" type="text" value="%s"' % url in res, res
+        assert 'name="Package--download_url" type="text" value="%s"' % download_url in res, res
+        assert 'name="Package--notes" type="text" value="%s"' % notes in res, res
+        license_html = '<option value="%s" selected>%s' % (license_id, license)
+        assert license_html in res, str(res) + license_html
+        assert 'name="Package--tags" size="60" type="text" value="%s"' % tags_txt in res, res
+
+        res = fv.submit('commit')
+        assert not 'Error' in res, res
         res = res.follow()
-        assert 'Packages - %s' % self.pkgname in res, res
-        pkg = model.Package.by_name(self.pkgname)
-        assert pkg.name == self.pkgname
-        assert pkg.title == self.pkgtitle
+        res1 = str(res).replace('</strong>', '')
+        assert 'Packages - %s' % name in res1, res1
+        assert 'Package: %s' % name in res1, res1
+        assert 'Title: %s' % title in res1, res1
+        assert 'Version: %s' % version in res1, res1
+        assert 'Url: <a href="%s">' % url in res1, res
+        assert 'Download Url: <a href="%s">' % download_url in res1, res
+        assert '<p>%s' % notes in res1, res1
+        assert 'Licenses: %s' % license in res1, res1
+        assert 'Tags:\n%s' % tags_html in res1, res1 + tags_html
+        pkg = model.Package.by_name(name)
+        assert pkg.name == name
+        assert pkg.title == title
+        assert pkg.version == version
+        assert pkg.url == url
+        assert pkg.download_url == download_url
+        assert pkg.notes == notes
+        assert pkg.license_id == license_id
+        saved_tagnames = [str(tag.name) for tag in pkg.tags]
+        assert saved_tagnames == list(tags)
+
         # for some reason environ['REMOTE_ADDR'] is undefined
         rev = model.Revision.youngest()
         assert rev.author == 'Unknown IP Address'
         # TODO: reinstate once fixed in code
-        exp_log_message = 'Creating package %s' % self.pkgname
+        exp_log_message = 'Creating package %s' % name
         # assert rev.message == exp_log_message
 
+    def test_new_existing_name(self):
+        # test creating a package with an existing name results in error'
+        # create initial package
+        assert not model.Package.by_name(self.pkgname)
+        offset = url_for(controller='package', action='new')
+        res = self.app.get(offset)
+        assert 'Packages - New' in res
+        fv = res.forms[0]
+        prefix = 'Package--'
+        fv[prefix + 'name'] = self.pkgname
+        res = fv.submit('commit')
+        assert not 'Error' in res, res
+        assert model.Package.by_name(self.pkgname)
+        # create duplicate package
+        res = self.app.get(offset)
+        assert 'Packages - New' in res
+        fv = res.forms[0]
+        fv[prefix+'name'] = self.pkgname
+        fv[prefix+'title'] = self.pkgtitle
+        res = fv.submit('preview')
+        assert 'Preview' in res
+        fv = res.forms[0]
+        res = fv.submit('commit')
+        assert 'Error' in res, res
+        assert 'Package name already exists in database' in res, res
+        # Ensure there is an error at the top of the form and by the field
+        assert 'class="form-errors"' in res, res
+        assert 'class="field_error"' in res, res
+        
     def test_new_bad_name(self):
         offset = url_for(controller='package', action='new')
         res = self.app.get(offset)
         assert 'Packages - New' in res
         fv = res.forms[0]
+        prefix = 'Package--'
         # should result in error as need >= 2 chars
-        fv['name'] = 'a'
+        fv[prefix + 'name'] = 'a'
+        fv[prefix + 'title'] = 'A Test Package'
+        fv[prefix + 'tags'] = 'test tags'
         res = fv.submit('commit')
         assert 'Error' in res, res
-        assert 'Enter a value at least 2 characters long' in res, res
+        assert 'Package name must be at least 2 characters long' in res, res
+        # Ensure there is an error at the top of the form and by the field
+        assert 'class="form-errors"' in res, res
+        assert 'class="field_error"' in res, res
+        # Ensure fields are prefilled
+        assert 'value="A Test Package"' in res, res
+        assert 'value="test tags"' in res, res
 

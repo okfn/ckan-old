@@ -166,7 +166,7 @@ class PackageController(CkanBaseController):
             # needed because request is nested
             # multidict which is read only
             params = dict(request.params)
-            c.fs = ckan.forms.authz_fs.bind(pkg.roles, data=params or None)
+            c.fs = ckan.forms.package_authz_fs.bind(pkg.roles, data=params or None)
             try:
                 self._update_authz(c.fs)
             except ValidationException, error:
@@ -187,22 +187,25 @@ class PackageController(CkanBaseController):
                 # new_roles.sync()
                 model.Session.commit()
                 model.Session.remove()
+                c.message = u'Added role \'%s\' for user \'%s\'' % (
+                    newpkgrole.role,
+                    newpkgrole.user.name)
         elif 'role_to_delete' in request.params:
             pkgrole_id = request.params['role_to_delete']
             pkgrole = model.PackageRole.query.get(pkgrole_id)
             if pkgrole is None:
-                c.message = 'Error: No role found with that id'
+                c.error = u'Error: No role found with that id'
             else:
                 pkgrole.purge()
                 model.Session.commit()
-                c.message = u'Deleted role %s for user %s' % (pkgrole.role,
-                        pkgrole.user)
+                c.message = u'Deleted role \'%s\' for user \'%s\'' % (pkgrole.role,
+                        pkgrole.user.name)
 
         # retrieve pkg again ...
         pkg = model.Package.by_name(id)
-        fs = ckan.forms.authz_fs.bind(pkg.roles)
+        fs = ckan.forms.package_authz_fs.bind(pkg.roles)
         c.form = fs.render()
-        c.new_roles_form = ckan.forms.new_roles_fs.render()
+        c.new_roles_form = ckan.forms.new_package_roles_fs.render()
         return render('package/authz')
 
     def _render_edit_form(self, fs):

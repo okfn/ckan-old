@@ -20,3 +20,7 @@ a.icon {
     font-size: 0.6em;
 }
 
+table.no-margin { 
+  margin: 0 0 0 0;  
+}
+

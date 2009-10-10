@@ -22,6 +22,7 @@ class TestBasic(TestController):
 
     @classmethod
     def teardown_class(self):
+        model.Session.remove()
         model.repo.rebuild_db()
 
     def test_user_gives_rating(self):

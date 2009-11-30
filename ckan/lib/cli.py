@@ -34,7 +34,7 @@ class ManageDb(CkanCommand):
     db create # create
     db init # create and put in default data
     db clean
-    db upgrade
+    db upgrade [{version no.}] # Data migrate
     db dump {file-path} # dump to a file (json)
     db dump-rdf {package-name} {file-path}
     db simple-dump-csv {file-path}
@@ -203,6 +203,7 @@ class ManageDb(CkanCommand):
             data.load_esw_txt_via_rest(load_path, ckanclient)
         else:
             data.load_esw_txt_into_db(load_path)
+
 
 class CreateTestData(CkanCommand):
     '''Create test data in the DB.
@@ -576,11 +577,10 @@ class TestData(CkanCommand):
         assert pkg.license.name in res, res
 
         tag = pkg.tags[0]
-        res = res.click(tag.name)
-        print '* Checking tag %s' % res.request.url
-        assert 'Tag: %s' % str(tag.name) in res, res
-        assert str(pkg.name) in res, res
-        
+        res = check_page('/tag/read/%s' % tag.name, 
+                ('Tag: %s' % str(tag.name), str(pkg.name))
+            )
+
         res = check_page('/package/new', 'Register a New Package')
         
         res = check_page('/package/list', 'Packages')
@@ -651,3 +651,24 @@ class Sysadmin(CkanCommand):
             return
         model.remove_user_from_role(user, model.Role.ADMIN, model.System())
         model.repo.commit_and_remove()
+
+class CreateSearchIndex(CkanCommand):
+    '''Creates a search index for all packages
+    '''
+
+    summary = __doc__.split('\n')[0]
+    usage = __doc__
+    max_args = 0
+    min_args = 0
+
+    def command(self):
+        self._load_config()
+        self.index()
+
+    def index(self):
+        from ckan import model
+        from ckan.model.full_search import SearchVectorTrigger
+        engine = model.metadata.bind
+        for pkg in model.Package.query.all():
+            pkg_dict = pkg.as_dict()
+            SearchVectorTrigger().update_package_vector(pkg_dict, engine)

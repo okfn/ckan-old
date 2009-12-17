@@ -92,7 +92,7 @@ class CreateTestData(cli.CkanCommand):
                             self.group_names.append(group_name)
                         pkg.groups.append(group)
                 elif attr == 'license':
-                    license = model.License.byName(val)
+                    license = model.License.by_name(val)
                     pkg.license = license
                 elif attr == 'extras':
                     pkg.extras = val
@@ -170,7 +170,7 @@ class CreateTestData(cli.CkanCommand):
         pkg1.tags = [tag1, tag2]
         pkg2.tags = [ tag1 ]
         self.tag_names = [u'russian', u'tolstoy']
-        license1 = model.License.byName(u'OKD Compliant::Other')
+        license1 = model.License.by_name(u'OKD Compliant::Other')
         pkg1.license = license1
         pkg2.title = u'A Wonderful Story'
         pkg1._extras = {'genre':model.PackageExtra(key=u'genre', value='romantic novel'),

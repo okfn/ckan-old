@@ -24,12 +24,6 @@ class TestPackageController(TestController):
         res = self.app.get(offset)
         assert 'Packages - Index' in res
 
-    def test_sidebar(self):
-        offset = url_for(controller='package')
-        res = self.app.get(offset)
-        # sidebar
-        assert 'Packages section' in res
-
     def test_minornavigation(self):
         offset = url_for(controller='package')
         res = self.app.get(offset)
@@ -92,26 +86,16 @@ class TestPackageController(TestController):
         assert 'Packages - List' in res
         name = u'annakarenina'
         assert name in res
-        res = res.click(name)
+        print res
+        res = res.click(model.Package.by_name(name).title)
         assert 'Packages - %s' % name in res
 
     def test_search(self):
         offset = url_for(controller='package', action='search')
         res = self.app.get(offset)
         assert 'Packages - Search' in res
-        self._check_search_results(res, 'annakarenina', ['1 package found', 'annakarenina'] )
-        self._check_search_results(res, 'warandpeace', ['1 package found', 'warandpeace'] )
+        self._check_search_results(res, 'annakarenina', ['1 package found', 'A Novel By Tolstoy'] )
         self._check_search_results(res, '', ['0 packages found'] )
-        self._check_search_results(res, 'A Novel By Tolstoy', ['1 package found'] )
-        self._check_search_results(res, 'title:Novel', ['1 package found'] )
-        self._check_search_results(res, 'title:peace', ['0 packages found'] )
-        self._check_search_results(res, 'name:warandpeace', ['1 package found'] )
-        self._check_search_results(res, 'groups:david', ['2 packages found'] )
-        self._check_search_results(res, 'groups:roger', ['1 package found'] )
-        self._check_search_results(res, 'groups:lenny', ['0 packages found'] )
-        self._check_search_results(res, 'annakarenina', ['1 package found', 'annakarenina'], True, False )
-        self._check_search_results(res, 'annakarenina', ['1 package found', 'annakarenina'], False, True )
-        self._check_search_results(res, 'annakarenina', ['1 package found', 'annakarenina'], True, True )
 
     def _check_search_results(self, page, terms, requireds, only_open=False, only_downloadable=False):
         form = page.forms[0]
@@ -119,8 +103,8 @@ class TestPackageController(TestController):
         form['open_only'] = only_open
         form['downloadable_only'] = only_downloadable
         results_page = form.submit()
-        results_page = self.main_div(results_page)
         assert 'Packages - Search' in results_page, results_page
+        results_page = self.main_div(results_page)
         for required in requireds:
             results_page = self.main_div(results_page)
             assert required in results_page, "%s : %s" % (results_page, required)
@@ -277,7 +261,7 @@ Hello world.
         pkg.tags = [model.Tag(name=u'one'), model.Tag(name=u'two')]
         pkg.state = model.State.query.filter_by(name='deleted').one()
         tags_txt = ' '.join([tag.name for tag in pkg.tags])
-        pkg.license = model.License.byName(u'OKD Compliant::Other')
+        pkg.license = model.License.by_name(u'OKD Compliant::Other')
         extras = {'key1':'value1', 'key2':'value2', 'key3':'value3'}
         for key, value in extras.items():
             pkg.extras[unicode(key)] = unicode(value)

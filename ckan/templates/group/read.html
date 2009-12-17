@@ -1,8 +1,6 @@
 <html xmlns:py="http://genshi.edgewall.org/"
   xmlns:xi="http://www.w3.org/2001/XInclude">
   
-  <xi:include href="../package/common.html" /> 
-
   <py:def function="page_title">Groups - ${c.group.name}</py:def>
 
   <div py:match="content">
@@ -40,9 +38,10 @@
       </li>
     </py:for>
     </ul>
+    There are ${len(c.group_active_packages)} package${'' if len(c.group_active_packages) == 1 else 's'} in this group.
   </div>
 
-  <xi:include href="../layout.html" />
+  <xi:include href="layout.html" />
 </html>
 
 

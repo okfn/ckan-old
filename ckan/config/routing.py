@@ -25,6 +25,7 @@ def make_map():
     map.connect('about', 'about', controller='home', action='about')
     maps.admin_map(map, controller='admin', url='/admin')
     map.connect('api/search/:register', controller='rest', action='search')
+    map.connect('api/tag_counts', controller='rest', action='tag_counts')
     map.connect('api', controller='rest', action='index')
     map.connect('api/rest', controller='rest', action='index')
     map.connect('api/rest/:register', controller='rest', action='list',
@@ -40,15 +41,19 @@ def make_map():
     map.connect('api/rest/:register/:id', controller='rest', action='delete',
         conditions=dict(method=['DELETE']))
 
+    map.redirect("/tags/{url:.*}", "/tag/{url}")
+    map.redirect("/packages/{url:.*}", "/package/{url}")
     map.connect('package', controller='package', action='index')
     map.connect('package/search', controller='package', action='search')
     map.connect('package/list', controller='package', action='list')
     map.connect('package/new', controller='package', action='new')
     map.connect('package/:id', controller='package', action='read')
+    map.redirect("/groups/{url:.*}", "/group/{url}")
     map.connect('group', controller='group', action='index')
     map.connect('group/list', controller='group', action='list')
     map.connect('group/new', controller='group', action='new')
     map.connect('group/:id', controller='group', action='read')
+    map.redirect("/users/{url:.*}", "/user/{url}")
     map.connect('user/all', controller='user', action='all')
     map.connect('user/edit', controller='user', action='edit')
     map.connect('user/login', controller='user', action='login')

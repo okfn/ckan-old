@@ -1,5 +1,6 @@
 import datetime
 
+from pylons import config
 from meta import *
 import vdm.sqlalchemy
 
@@ -82,6 +83,14 @@ class DomainObject(object):
             attr = getattr(register, field)
             q = or_(q, make_like(attr, term))
         return query.filter(q)
+
+    @classmethod
+    def active(self):
+        # Memoize the id of the 'active' row in the State table.
+        if not hasattr(self, 'active_id'):
+            self.active_id = State.query.filter_by(name='active').one().id
+
+        return self.query.filter_by(state_id=self.active_id)
 
     def purge(self):
         sess = orm.object_session(self)
@@ -190,6 +199,9 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         _dict['ratings_count'] = len(self.ratings)
         _dict['resources'] = [{'url':res.url, 'format':res.format, 'description':res.description} for res in self.resources]
         _dict['download_url'] = self.resources[0].url if self.resources else ''
+        ckan_host = config.get('ckan_host', None)
+        if ckan_host:
+            _dict['ckan_url'] = 'http://%s/package/%s' % (ckan_host, self.name)
         return _dict
         
 

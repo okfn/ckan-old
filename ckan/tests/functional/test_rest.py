@@ -1,3 +1,5 @@
+from pylons import config
+
 from ckan.tests import *
 import ckan.model as model
 import ckan.authz as authz
@@ -126,6 +128,15 @@ class TestRestController(TestController):
         assert '"Index of the novel"' in res, res
         # 2/12/09 download_url is now deprecated - to be removed in the future
         assert '"download_url": "http://www.annakarenina.com/download/x=1&y=2"' in res, res
+
+
+    def _test_04_ckan_url(self):
+        # NB This only works if run on its own
+        config['ckan_host'] = 'test.ckan.net'
+        offset = '/api/rest/package/annakarenina'
+        res = self.app.get(offset, status=[200])
+        assert 'ckan_url' in res
+        assert '"ckan_url": "http://test.ckan.net/package/annakarenina"' in res, res
 
     def test_04_get_tag(self):
         offset = '/api/rest/tag/tolstoy'
@@ -729,3 +740,26 @@ class TestSearch(TestController):
         assert len(res_dict['results']) == 1, res_dict
         assert res_dict['results'][0]['name'] == 'warandpeace', res_dict['results'][0]['name']
 
+
+class TestApiMisc(TestController):
+    @classmethod
+    def setup_class(self):
+        try:
+            CreateTestData.delete()
+        except:
+            pass
+        model.Session.remove()
+        CreateTestData.create()
+        self.base_url = '/api'
+
+    @classmethod
+    def teardown_class(self):
+        model.Session.remove()
+        CreateTestData.delete()
+
+    def test_0_tag_counts(self):
+        offset = self.base_url + '/tag_counts'
+        res = self.app.get(offset, status=200)
+        assert '["russian", 2]' in res, res
+        assert '["tolstoy", 1]' in res, res
+        

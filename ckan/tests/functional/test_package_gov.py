@@ -169,39 +169,6 @@ class TestEdit(TestController):
         self.check_tag(main_res, prefix + 'precision', 'value="%s"' % precision)
         self.check_tag(main_res, prefix + 'taxonomy_url', 'value="%s"' % taxonomy_url)
         self.check_tag(main_res, prefix + 'agency', 'value="%s"' % agency)
-##        assert 'name="%sname" size="40" type="text" value="%s"' % (prefix, pkg.name) in res, res
-##        assert 'name="%stitle" size="40" type="text" value="%s"' % (prefix, pkg.title) in res, res
-###        assert 'name="%sversion" size="40" type="text" value="%s"' % (prefix, pkg.version) in res, res
-##        assert 'name="%surl" size="40" type="text" value="%s"' % (prefix, pkg.url) in res, res
-##        res_html = 'id="%sresources-0-url" type="text" value="%s"' % (prefix, pkg.resources[0].url)
-##        assert res_html in res, self.main_div(res) + res_html
-##        for res_index, resource in enumerate(pkg.resources):
-##            for res_field in ('url', 'format', 'description'):
-##                expected_value = getattr(resource, res_field)
-##                assert 'id="%sresources-%s-%s" type="text" value="%s"' % (prefix, res_index, res_field, expected_value) in res, res
-##        assert '<textarea cols="60" id="%snotes" name="%snotes" rows="15">%s</textarea>' % (prefix, prefix, pkg.notes) in res, res
-##        license_html = '<option value="%s" selected>%s' % (pkg.license_id, pkg.license.name)
-##        assert license_html in res, str(res) + license_html
-##        tags_html = 'name="%stags" size="60" type="text" value="%s"' % (prefix, tags_txt)
-##        assert tags_html in res, str(res) + tags_html
-##        state_html = '<option value="%s" selected>%s' % (pkg.state.id, pkg.state.name)
-##        assert state_html in res, str(res) + state_html
-##        assert prefix + 'external_reference" size="40" type="text" value="%s"' % external_reference in main_res, main_res
-##        assert prefix + 'date_released" size="40" type="text" value="%s"' % '30/7/2009' in main_res, main_res
-####        assert prefix + 'date_updated" size="40" type="text" value="%s"' % '25/12/1998' in main_res, main_res
-####        assert prefix + 'update_frequency" size="40" type="text" value="%s"' % update_frequency in main_res, main_res
-####        assert prefix + 'geographic_granularity" size="40" type="text" value="%s"' % geographic_granularity in main_res, main_res
-####        assert prefix + 'geographic coverage" size="40" type="text" value="%s"' % geographic_coverage in main_res, main_res
-##        assert 'option value="%s" selected' % department in main_res, main_res
-##        assert prefix + 'department-other" type="text" value=""' in main_res, main_res
-####        assert prefix + 'temporal_granularity" size="40" type="text" value="%s"' % temporal_granularity in main_res, main_res
-####        assert prefix + 'temporal_coverage-from" size="40" type="text" value="%s"' % temporal_coverage[0] in main_res, main_res
-####        assert prefix + 'temporal_coverage-to" size="40" type="text" value="%s"' % temporal_coverage[1] in main_res, main_res
-####        assert prefix + 'categories" size="40" type="text" value="%s"' % categories in main_res, main_res
-####        assert prefix + 'national_statistic" size="40" type="text" value="%s"' % national_statistic in main_res, main_res
-####        assert prefix + 'precision" size="40" type="text" value="%s"' % precision in main_res, main_res
-####        assert prefix + 'taxonomy_url" size="40" type="text" value="%s"' % taxonomy_url in main_res, main_res
-####        assert prefix + 'agency" size="40" type="text" value="%s"' % agency in main_res, main_res
 
         # Amend form
         name = u'test_name'
@@ -364,21 +331,22 @@ class TestEdit(TestController):
         # Check package page
         assert not 'Error' in res, res
         res = res.follow(extra_environ={'REMOTE_USER':'testadmin'})
-        res1 = self.main_div(res).replace('</strong>', '')
+        main_res = self.main_div(res).replace('</strong>', '')
+        sidebar = self.sidebar(res)
+        res1 = (main_res + sidebar).decode('ascii', 'ignore')
         assert 'Packages - %s' % str(name) in res, res
-        assert 'Package: %s' % str(name) in res1, res1
-        assert 'Title: %s' % str(title) in res1, res1
-#        assert 'Version: %s' % str(version) in res1, res1
-        assert 'url: <a href="%s">' % str(url).lower() in res1.lower(), res1
+        assert str(name) in res1, res1
+        assert str(title) in res1, res1
+#        assert str(version) in res1, res1
+        assert '<a href="%s">' % str(url).lower() in res1.lower(), res1
         for res_index, resource in enumerate(resources):
             res_html = '<tr> <td><a href="%s">%s</a></td><td>%s</td><td>%s</td>' % (resource[0], resource[0], resource[1], resource[2]) 
             assert res_html in preview, preview + res_html
         assert '<p>%s' % str(notes) in res1, res1
         assert 'License: %s' % str(license) in res1, res1
-        assert 'Tags:' in res1, res1
         for tag_html in tags_html_list:
             assert tag_html in res1, tag_html + res1
-        assert 'Groups:\n%s' % groups_html in res1, res1 + groups_html
+        assert groups_html in res1, res1 + groups_html
         assert 'State: %s' % str(state.name) in res1, res1
         for key, value in current_extras.items():
             self.check_named_element(res1, 'li', '%s:' % key.capitalize(), value)
@@ -576,20 +544,20 @@ class TestNew(TestController):
         # Check package page
         assert not 'Error' in res, res
         res = res.follow()
-        res1 = self.main_div(res).replace('</strong>', '')
+        main_res = self.main_div(res).replace('</strong>', '')
+        sidebar = self.sidebar(res)
+        res1 = (main_res + sidebar).decode('ascii', 'ignore')
         assert 'Packages - %s' % str(name) in res, res
-        assert 'Package: %s' % str(name) in res1, res1
-        assert 'Title: %s' % str(title) in res1, res1
-#        assert 'Version: %s' % str(version) in res1, res1
-        assert 'url: <a href="%s">' % str(url).lower() in res1.lower(), res1
+        assert  str(name) in res1, res1
+        assert str(title) in res1, res1
+#        assert str(version) in res1, res1
+        assert '<a href="%s">' % str(url).lower() in res1.lower(), res1
         assert '<td><a href="%s">' % str(download_url) in res1, res1
         assert '<td>%s</td>' % str(download_format) in res1, res1
         assert '<p>%s' % str(notes) in res1, res1
-        assert 'License: %s' % str(license) in res1, res1
-        assert 'Tags:' in res1, res1
+        assert str(license) in res1, res1
         for tag in tags:
             assert '%s</a>' % tag.lower() in res
-        assert 'Groups:' in res1, res1
         current_extras = {
             'external_reference':external_reference,
             'date_released':date_released,

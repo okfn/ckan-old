@@ -89,9 +89,14 @@ class TestController(object):
             model.Session.delete(rating)
 
     def main_div(self, html):
-        'strips html to just the <div id=main> section'
+        'strips html to just the <div id="main"> section'
         the_html = str(html)
         return the_html[the_html.find('<div id="main">'):the_html.find('<div id="footer">')]
+
+    def sidebar(self, html):
+        'strips html to just the <div id="primary"> section'
+        the_html = str(html)
+        return the_html[the_html.find('<div id="primary"'):the_html.find('<div id="main">')]
 
     def check_named_element(self, html, tag_name, *html_to_find):
         '''Searches in the html and returns True if it can find a particular

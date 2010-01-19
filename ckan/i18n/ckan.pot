@@ -1,17 +1,17 @@
-# French translations for ckan.
-# Copyright (C) 2009 ORGANIZATION
+# Translations template for ckan.
+# Copyright (C) 2010 ORGANIZATION
 # This file is distributed under the same license as the ckan project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2009.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2010.
 #
+#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: ckan 0.11a\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2009-12-30 13:31+0000\n"
-"PO-Revision-Date: 2010-01-18 21:22+0000\n"
+"POT-Creation-Date: 2010-01-18 21:22+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: fr <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n > 1)\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -200,8 +200,8 @@ msgstr ""
 
 #: ckan/templates/group/layout.html:11
 msgid ""
-"Whilst tags are great at collecting packages together, there are "
-"occasions when you want to restrict users from editing a collection. A"
+"Whilst tags are great at collecting packages together, there are occasions "
+"when you want to restrict users from editing a collection. A"
 msgstr ""
 
 #: ckan/templates/group/layout.html:11
@@ -331,10 +331,10 @@ msgstr ""
 #: ckan/templates/home/about.html:28
 msgid ""
 "CKAN has a\n"
-"\t\twiki-like interface that lets anyone add and material held in it. "
-"Second,\n"
-"\t\tand unlike a wiki, CKAN can store 'structured' information, which "
-"allows it\n"
+"\t\twiki-like interface that lets anyone add and material held in it. Second,"
+"\n"
+"\t\tand unlike a wiki, CKAN can store 'structured' information, which allows "
+"it\n"
 "\t\tto provide 'index'-like features such as automated registration, "
 "discovery\n"
 "\t\tand installation of material. In this respect it behaves like"
@@ -480,17 +480,17 @@ msgstr ""
 
 #: ckan/templates/home/guide.html:10
 msgid ""
-"Want to automate creating a package from the info in a webpage? You can "
-"use the CKAN bookmarklet. This will automatically extract information "
-"such as url, title and a description and send it off to the new package "
-"form (where you can then edit further)."
+"Want to automate creating a package from the info in a webpage? You can use "
+"the CKAN bookmarklet. This will automatically extract information such as "
+"url, title and a description and send it off to the new package form (where "
+"you can then edit further)."
 msgstr ""
 
 #: ckan/templates/home/guide.html:11
 msgid ""
-"To install the bookmarklet just drag the following link to your bookmarks"
-" toolbar (in IE: right-click on it and select Add to Favourites). For "
-"more details on installing bookmarklets see"
+"To install the bookmarklet just drag the following link to your bookmarks "
+"toolbar (in IE: right-click on it and select Add to Favourites). For more "
+"details on installing bookmarklets see"
 msgstr ""
 
 #: ckan/templates/home/guide.html:11
@@ -639,9 +639,9 @@ msgstr ""
 #: ckan/templates/home/license.html:28
 msgid ""
 "For convenience, all material - including all package, tag and revision "
-"information - is available in bulk, in the form of a full dump of the "
-"CKAN database. This (gzipped) dump file is updated daily and can be "
-"downloaded from"
+"information - is available in bulk, in the form of a full dump of the CKAN "
+"database. This (gzipped) dump file is updated daily and can be downloaded "
+"from"
 msgstr ""
 
 #: ckan/templates/home/license.html:29
@@ -690,8 +690,7 @@ msgstr ""
 msgid "here."
 msgstr ""
 
-#: ckan/templates/package/edit_form.html:16
-#: ckan/templates/revision/read.html:11
+#: ckan/templates/package/edit_form.html:16 ckan/templates/revision/read.html:11
 msgid "Author:"
 msgstr ""
 
@@ -1119,8 +1118,8 @@ msgstr ""
 
 #: ckan/templates/user/openid_form.html:8
 msgid ""
-"You don't need to sign up for yet another account to use CKAN. Instead "
-"you can just"
+"You don't need to sign up for yet another account to use CKAN. Instead you "
+"can just"
 msgstr ""
 
 #: ckan/templates/user/openid_form.html:8
@@ -1196,486 +1195,4 @@ msgstr ""
 #: ckan/templates/user/read.html:34
 msgid "Recent changes"
 msgstr ""
-
-#~ msgid "REST API - Index"
-#~ msgstr ""
-
-#~ msgid "API"
-#~ msgstr ""
-
-#~ msgid "Introduction"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "In addition to use of this "
-#~ "website, CKAN data can be viewed "
-#~ "and changed by using an Application "
-#~ "Programming Interface (API)."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "The API takes the form of a "
-#~ "RESTful (Representational State Transfer) "
-#~ "style API for accessing CKAN database"
-#~ " objects and a Search API."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "This document specifies the API so "
-#~ "that anyone can create software "
-#~ "applications to use the CKAN service."
-#~ " The specification describes the RESTful"
-#~ " API in terms of which resources "
-#~ "are available, what their locations are,"
-#~ " what methods each resource supports, "
-#~ "and what the responses might be. "
-#~ "It also species the usage and "
-#~ "responses to the search API."
-#~ msgstr ""
-
-#~ msgid "API Keys"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "For any action which makes a "
-#~ "change to a resource (i.e. all "
-#~ "non-GET methods)\n"
-#~ "you will require an API key. To obtain your API key:"
-#~ msgstr ""
-
-#~ msgid "Login as a normal user"
-#~ msgstr ""
-
-#~ msgid "Visit the API Key page"
-#~ msgstr ""
-
-#~ msgid "API Locations"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "A REST interface presents resources at"
-#~ " published locations. Here are the "
-#~ "names locations of the CKAN REST "
-#~ "API resources. This is followed by "
-#~ "a table of non-REST API locations."
-#~ msgstr ""
-
-#~ msgid "Resource Name"
-#~ msgstr ""
-
-#~ msgid "Location"
-#~ msgstr ""
-
-#~ msgid "Package Register"
-#~ msgstr ""
-
-#~ msgid "/api/rest/package"
-#~ msgstr ""
-
-#~ msgid "Package Entity"
-#~ msgstr ""
-
-#~ msgid "/api/rest/package/PACKAGE-NAME"
-#~ msgstr ""
-
-#~ msgid "Group Register"
-#~ msgstr ""
-
-#~ msgid "/api/rest/group"
-#~ msgstr ""
-
-#~ msgid "Group Entity"
-#~ msgstr ""
-
-#~ msgid "/api/rest/group/GROUP-NAME"
-#~ msgstr ""
-
-#~ msgid "Tag Register"
-#~ msgstr ""
-
-#~ msgid "/api/rest/tag"
-#~ msgstr ""
-
-#~ msgid "Tag Entity"
-#~ msgstr ""
-
-#~ msgid "/api/rest/tag/TAG-NAME"
-#~ msgstr ""
-
-#~ msgid "API functions"
-#~ msgstr ""
-
-#~ msgid "Package Search"
-#~ msgstr ""
-
-#~ msgid "/api/search/package"
-#~ msgstr ""
-
-#~ msgid "Tag Counts"
-#~ msgstr ""
-
-#~ msgid "/api/tag_counts"
-#~ msgstr ""
-
-#~ msgid "Methods and data formats"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Each resource location supports a number"
-#~ " of methods, which may send or "
-#~ "receive a piece of data. Standard "
-#~ "http status codes are used to "
-#~ "signal the outcome of the operation."
-#~ msgstr ""
-
-#~ msgid "Resource"
-#~ msgstr ""
-
-#~ msgid "Method"
-#~ msgstr ""
-
-#~ msgid "Request"
-#~ msgstr ""
-
-#~ msgid "Response"
-#~ msgstr ""
-
-#~ msgid "GET"
-#~ msgstr ""
-
-#~ msgid "Package-List"
-#~ msgstr ""
-
-#~ msgid "POST"
-#~ msgstr ""
-
-#~ msgid "Package"
-#~ msgstr ""
-
-#~ msgid "PUT"
-#~ msgstr ""
-
-#~ msgid "Group-List"
-#~ msgstr ""
-
-#~ msgid "Group"
-#~ msgstr ""
-
-#~ msgid "Tag-List"
-#~ msgstr ""
-
-#~ msgid "Tag"
-#~ msgstr ""
-
-#~ msgid "Search"
-#~ msgstr ""
-
-#~ msgid "Search-Response"
-#~ msgstr ""
-
-#~ msgid "Query-String"
-#~ msgstr ""
-
-#~ msgid "Tag-Count-List"
-#~ msgstr ""
-
-#~ msgid "Note: 'PUT' operations may instead use the HTTP POST method."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Note: To search, there are two "
-#~ "ways to provide parameters - you "
-#~ "can use either or both ways in "
-#~ "each search request. The first method"
-#~ " is to provide them as parameters "
-#~ "in the URL, (e.g. "
-#~ "/api/rest/search?q=geodata&allfields=1 ) The second"
-#~ " way is to encode the parameters "
-#~ "as a JSON dictionary and supply "
-#~ "them in the POST request."
-#~ msgstr ""
-
-#~ msgid "Data Formats"
-#~ msgstr ""
-
-#~ msgid "Name"
-#~ msgstr ""
-
-#~ msgid "[ Name-String, Name-String, Name-String, ... ]"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "{ name: Name-String, title: String, "
-#~ "version: String, url: String, resources: "
-#~ "[ Resource-Dict, Resource-Dict, ... "
-#~ "], author: String, author_email: String, "
-#~ "maintainer: String, maintainer_email: String, "
-#~ "license: String, tags: Tag-List, notes:"
-#~ " String, extras: { Name-String: "
-#~ "Value-String, ... } }"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "{ name: Name-String, title: String, "
-#~ "description: String, packages: Group-List "
-#~ "}"
-#~ msgstr ""
-
-#~ msgid "{ name: Name-String }"
-#~ msgstr ""
-
-#~ msgid "Name-String"
-#~ msgstr ""
-
-#~ msgid "An alphanumeric string."
-#~ msgstr ""
-
-#~ msgid "Resource-Dict"
-#~ msgstr ""
-
-#~ msgid "{ url: String, format: String, description: String }"
-#~ msgstr ""
-
-#~ msgid "[ q: String ]"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "{ count: Count-int, results: "
-#~ "[Package-Name-String, Package-Name-String,"
-#~ " ... ] } or { count: Count-"
-#~ "int, results: [{ name:Name-String, "
-#~ "title: String ... }, { name:Name-"
-#~ "String, title: String ... }, etc. "
-#~ "] }"
-#~ msgstr ""
-
-#~ msgid "[ [tag-name, tag-count], [tag-name, tag-count], ... ]"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "To send request data, create a "
-#~ "simple data structure, then convert it"
-#~ " to a JSON string, then percent-"
-#~ "encode the JSON string, then send "
-#~ "it as the request body."
-#~ msgstr ""
-
-#~ msgid "Response data will be in the response body."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Note that when you update an "
-#~ "object, fields that you don't supply "
-#~ "will remain as they were before."
-#~ msgstr ""
-
-#~ msgid "To delete an 'extra' key-value pair, supply the key with a None value."
-#~ msgstr ""
-
-#~ msgid "Search parameters"
-#~ msgstr ""
-
-#~ msgid "Key"
-#~ msgstr ""
-
-#~ msgid "Value"
-#~ msgstr ""
-
-#~ msgid "Example"
-#~ msgstr ""
-
-#~ msgid "Notes"
-#~ msgstr ""
-
-#~ msgid "q"
-#~ msgstr ""
-
-#~ msgid "Search-String"
-#~ msgstr ""
-
-#~ msgid "q=geodata"
-#~ msgstr ""
-
-#~ msgid "q=government+sweden"
-#~ msgstr ""
-
-#~ msgid "q=%22drug%20abuse%22"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Criteria to search the package fields"
-#~ " for. URL-encoded search text. (You"
-#~ " can also contatenate words with a"
-#~ " '+' symbol in a URL.) Search "
-#~ "results must contain all the specified"
-#~ " words."
-#~ msgstr ""
-
-#~ msgid "qjson"
-#~ msgstr ""
-
-#~ msgid "JSON encoded options"
-#~ msgstr ""
-
-#~ msgid "['q':'geodata']"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "All search parameters can be json-"
-#~ "encoded and supplied to this URL "
-#~ "parameter as a more flexible "
-#~ "alternative."
-#~ msgstr ""
-
-#~ msgid "title, tags, notes,"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "groups, author, maintainer, update_frequency, "
-#~ "geographic_granularity, geographic_coverage, "
-#~ "temporal_granularity, temporal_coverage, "
-#~ "national_statistic, categories, precision, "
-#~ "department, agency, external_reference"
-#~ msgstr ""
-
-#~ msgid "title=uk%20stat&tags=health+census"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Search a particular a field. Note "
-#~ "that the latter fields mentioned here"
-#~ " are in the 'extra' fields."
-#~ msgstr ""
-
-#~ msgid "order_by"
-#~ msgstr ""
-
-#~ msgid "field-name (default=rank)"
-#~ msgstr ""
-
-#~ msgid "order_by=name"
-#~ msgstr ""
-
-#~ msgid "Specify either rank or the field to sort the results by"
-#~ msgstr ""
-
-#~ msgid "offset, limit"
-#~ msgstr ""
-
-#~ msgid "result-int (default offset=0, default limit=20)"
-#~ msgstr ""
-
-#~ msgid "offset=40&limit=20"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Pagination options. Offset is the number"
-#~ " of the first result and limit "
-#~ "is the number of results to "
-#~ "return."
-#~ msgstr ""
-
-#~ msgid "all_fields"
-#~ msgstr ""
-
-#~ msgid "0 (default) or 1"
-#~ msgstr ""
-
-#~ msgid "all_fields=1"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "Each matching search result is given "
-#~ "as either a package name (0) or"
-#~ " the full package record (1)."
-#~ msgstr ""
-
-#~ msgid "filter_by_openness"
-#~ msgstr ""
-
-#~ msgid "filter_by_openness=1"
-#~ msgstr ""
-
-#~ msgid "Filters results by ones which are open."
-#~ msgstr ""
-
-#~ msgid "filter_by_downloadable"
-#~ msgstr ""
-
-#~ msgid "filter_by_downloadable=1"
-#~ msgstr ""
-
-#~ msgid "Filters results by ones which have a download URL."
-#~ msgstr ""
-
-#~ msgid "Status Codes"
-#~ msgstr ""
-
-#~ msgid "OK"
-#~ msgstr ""
-
-#~ msgid "Moved Permanently"
-#~ msgstr ""
-
-#~ msgid "Bad Request"
-#~ msgstr ""
-
-#~ msgid "Not Authorized"
-#~ msgstr ""
-
-#~ msgid "Not Found"
-#~ msgstr ""
-
-#~ msgid "Conflict (e.g. name already exists)"
-#~ msgstr ""
-
-#~ msgid "Service Error"
-#~ msgstr ""
-
-#~ msgid "Authorized Requests"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "All requests that are to result in a change to the CKAN register must\n"
-#~ "be sent with a valid Authorization "
-#~ "header. In addition, the user must "
-#~ "have the authorization to perform the"
-#~ " request."
-#~ msgstr ""
-
-#~ msgid "Header"
-#~ msgstr ""
-
-#~ msgid "HTTP_AUTHORIZATION"
-#~ msgstr ""
-
-#~ msgid "A valid CKAN REST API authorization token."
-#~ msgstr ""
-
-#~ msgid ""
-#~ "The value passed with this header "
-#~ "must satisfy the currently operating "
-#~ "requirements of CKAN.\n"
-#~ "The current requirment for a valid "
-#~ "Authorization header is the value should"
-#~ " be a valid API key."
-#~ msgstr ""
-
-#~ msgid "Example Value"
-#~ msgstr ""
-
-#~ msgid "fde34a3c-b716-4c39-8dc4-881ba115c6d4"
-#~ msgstr ""
-
-#~ msgid ""
-#~ "If requests that are required to "
-#~ "be authorized are not sent with a"
-#~ " currently valid Authorization header, or"
-#~ " the user associated with the key "
-#~ "is not authorized for the operation, "
-#~ "then the requested operation will not"
-#~ " be carried out and the CKAN "
-#~ "REST API will respond with status "
-#~ "code 403."
-#~ msgstr ""
 

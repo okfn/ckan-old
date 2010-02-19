@@ -3,15 +3,16 @@ import urlparse
 
 import simplejson
 import genshi
+from pylons import config
 
 from ckan.lib.base import *
 from ckan.lib.search import Search, SearchOptions
-from ckan.lib.package_render import package_render
 from ckan.lib.package_saver import PackageSaver, ValidationException
 import ckan.forms
 import ckan.authz
 import ckan.rating
 import ckan.misc
+from ckan.lib.helpers import Page
 
 logger = logging.getLogger('ckan.controllers')
 
@@ -23,46 +24,43 @@ class PackageController(BaseController):
         return render('package/index')
 
     def list(self):
-        from ckan.lib.helpers import Page
-
         c.page = Page(
             collection=model.Package.active(),
             page=request.params.get('page', 1),
             items_per_page=50
         )
-
         return render('package/list')
 
     def search(self):        
         c.q = request.params.get('q')
         c.open_only = request.params.get('open_only')
         c.downloadable_only = request.params.get('downloadable_only')
-
         if c.q:
-            options = SearchOptions({'q': c.q,
-                                     'filter_by_openness': c.open_only,
-                                     'filter_by_downloadable': c.downloadable_only,
-#                                     'return_objects': True,
-#                                     'limit': 0
-                                     })
-
+            options = SearchOptions({
+                'q': c.q,
+                'filter_by_openness': c.open_only,
+                'filter_by_downloadable': c.downloadable_only,
+                })
             # package search
             query = Search().query(options)
-
-            from ckan.lib.helpers import Page
-
             c.page = Page(
                 collection=query,
                 page=request.params.get('page', 1),
                 items_per_page=50
             )
-
             # filter out ranks from the query result
+            # annoying but no better way to do this it seems
             pkg_list = [pkg for pkg, rank in c.page]
             c.page.items = pkg_list
 
             # tag search
-            options.entity = 'tag'
+            c.tag_limit = 25
+            options = SearchOptions({
+                'entity': 'tag',
+                'q': c.q,
+                'return_objects': True,
+                'limit': c.tag_limit,
+                })
             results = Search().run(options)
             c.tags = results['results']
             c.tags_count = results['count']
@@ -72,11 +70,18 @@ class PackageController(BaseController):
     def read(self, id):
         pkg = model.Package.by_name(id)
         if pkg is None:
-            abort(404, '404 Not Found')
+            abort(404, gettext('Package not found'))
+
+        if config.get('rdf_packages'):
+            accept_headers = request.headers.get('Accept', '')
+            if 'application/rdf+xml' in accept_headers and \
+                   not 'text/html' in accept_headers:
+                rdf_url = '%s%s' % (config['rdf_packages'], pkg.name)
+                redirect(rdf_url, code=303)
 
         auth_for_read = self.authorizer.am_authorized(c, model.Action.READ, pkg)
         if not auth_for_read:
-            abort(401, str('Unauthorized to read %s' % id))
+            abort(401, str(gettext('Unauthorized to read package %s') % id))
 
         c.auth_for_authz = self.authorizer.am_authorized(c, model.Action.EDIT_PERMISSIONS, pkg)
         c.auth_for_edit = self.authorizer.am_authorized(c, model.Action.EDIT, pkg)
@@ -95,13 +100,13 @@ class PackageController(BaseController):
             except KeyError, e:
                 if dict(request.params).has_key('pkg_name'):
                     id = request.params.getone('pkg_name')
-                c.error = 'Select two revisions before doing the comparison.'
+                c.error = _('Select two revisions before doing the comparison.')
             else:
                 h.redirect_to(controller='revision', action='diff', **params)
 
         c.pkg = model.Package.by_name(id)
         if not c.pkg:
-            abort(404, '404 Not Found')
+            abort(404, gettext('Package not found'))
         c.pkg_revisions = c.pkg.all_revisions
         c.youngest_rev_id = c.pkg_revisions[0].revision_id
         return render('package/history')
@@ -174,7 +179,7 @@ class PackageController(BaseController):
             abort(404, '404 Not Found')
         am_authz = self.authorizer.am_authorized(c, model.Action.EDIT, pkg)
         if not am_authz:
-            abort(401, str('User %r unauthorized to edit %s' % (c.user, id)))
+            abort(401, str(gettext('User %r not authorized to edit %s') % (c.user, id)))
 
         c.auth_for_change_state = self.authorizer.am_authorized(c, model.Action.CHANGE_STATE, pkg)
         fs = ckan.forms.get_fieldset(is_admin=c.auth_for_change_state, basic=False, package_form=request.params.get('package_form'))
@@ -221,12 +226,12 @@ class PackageController(BaseController):
     def authz(self, id):
         pkg = model.Package.by_name(id)
         if pkg is None:
-            abort(404, '404 Not Found')
+            abort(404, gettext('Package not found'))
         c.pkgname = pkg.name
 
         c.authz_editable = self.authorizer.am_authorized(c, model.Action.EDIT_PERMISSIONS, pkg)
         if not c.authz_editable:
-            abort(401, '401 Access denied')                
+            abort(401, str(gettext('User %r not authorized to edit %s authorizations') % (c.user, id)))
 
         if 'commit' in request.params: # form posted
             # needed because request is nested
@@ -253,16 +258,16 @@ class PackageController(BaseController):
                 # new_roles.sync()
                 model.Session.commit()
                 model.Session.remove()
-                c.message = u'Added role \'%s\' for user \'%s\'' % (
+                c.message = _(u'Added role \'%s\' for user \'%s\'') % (
                     newpkgrole.role,
                     newpkgrole.user.name)
         elif 'role_to_delete' in request.params:
             pkgrole_id = request.params['role_to_delete']
             pkgrole = model.Session.query(model.PackageRole).get(pkgrole_id)
             if pkgrole is None:
-                c.error = u'Error: No role found with that id'
+                c.error = _(u'Error: No role found with that id')
             else:
-                c.message = u'Deleted role \'%s\' for user \'%s\'' % (pkgrole.role,
+                c.message = _(u'Deleted role \'%s\' for user \'%s\'') % (pkgrole.role,
                         pkgrole.user.name)
                 pkgrole.purge()
                 model.Session.commit()
@@ -278,13 +283,13 @@ class PackageController(BaseController):
         package_name = id
         package = model.Package.by_name(package_name)
         if package is None:
-            abort(404, '404 Package Not Found')
+            abort(404, gettext('404 Package Not Found'))
         rating = request.params.get('rating', '')
         if rating:
             try:
                 ckan.rating.set_my_rating(c, package, rating)
             except ckan.rating.RatingValueException, e:
-                abort(400, 'Rating value invalid')
+                abort(400, gettext('Rating value invalid'))
         h.redirect_to(controller='package', action='read', id=package_name)
 
     def _render_edit_form(self, fs, params={}, clear_session=False):

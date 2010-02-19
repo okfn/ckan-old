@@ -1,27 +1,58 @@
 Production Deployment
 =====================
 
-Here's an example for deploying ckan to http://demo.ckan.net/ via Apache.
+Here's an example for deploying CKAN to http://demo.ckan.net/ via Apache.
 
 1. Ideally setup the server with Ubuntu.
 
 
 2. Ensure these packages are installed:
    (e.g. sudo apt-get install <package-name>)
-  * mercurial             Source control
-  * python                Python interpreter
-  * apache2               Web server
-  * libapache2-mod-python Apache module for python
-  * libapache2-mod-wsgi   Apache module for WSGI
-  * postgresql            PostgreSQL database
-  * libpq-dev             PostgreSQL library
-  * python-psycopg2       PostgreSQL python module
-  * python-virtualenv     Python virtual environment sandboxing
-  * pip                   Python installer (use easy_install for this)
 
-3. Create a python virtual environment
+   =====================  ============================================
+   Package                Notes
+   =====================  ============================================
+   mercurial              Source control
+   python                 Python interpreter
+   apache2                Web server
+   libapache2-mod-python  Apache module for python
+   libapache2-mod-wsgi    Apache module for WSGI
+   postgresql             PostgreSQL database
+   libpq-dev              PostgreSQL library
+   python-psycopg2        PostgreSQL python module
+   python-virtualenv      Python virtual environment sandboxing
+   pip                    Python installer (use easy_install for this)
+   =====================  ============================================
 
-In a general user's home directory::
+
+3. Setup a PostgreSQL database
+
+  List existing databases::
+
+  $ psql -l
+
+  Create a user if one doesn't already exist::
+
+  $ sudo -u postgres createuser -S -D -R -P <user>
+
+  Replace <user> with the unix username whose home directory has the ckan install.
+  It should prompt you for a new password for the CKAN data in the database.
+
+  Now create the database::
+
+  $ sudo -u postgres createdb -O <user> ckandemo
+
+
+NB Instead of using these manual instruction, steps 4 to 7 can be achieved
+automatically using the fabric deploy script. Add your server details 
+to fabfile.py and then run something like::
+
+  $ fab demo_server_net deploy
+
+
+4. Create a python virtual environment
+
+  In a general user's home directory::
 
   $ mkdir demo.ckan.net
   $ cd demo.ckan.net
@@ -29,26 +60,9 @@ In a general user's home directory::
   $ . pyenv/bin/activate
 
 
-4. Setup a PostgreSQL database::
-
-  $ sudo su postgres
-  $ createuser -S -D -R -P USER
-  Replace USER with the unix username whose home directory has the ckan install.
-  It should prompt you for a new password for the CKAN data in the database.
-  $ createdb -O USER ckandemo
-  $ exit
-
-
-NB Instead of using these manual instruction, steps 5 and 6 can be achieved
-  automatically using the fabric deploy script. Add your server details 
-  to fabfile.py and then run something like:
-
-  $ fab demo_server_net deploy
-
-
 5. Create the Pylons WSGI script
 
-Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
+  Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
 
     import os
     here = os.path.abspath(os.path.dirname(__file__))
@@ -60,34 +74,39 @@ Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
 
 6. Install code and dependent packages into the environment
 
-For the most recent version use::
+  For the most recent version use::
 
   $ wget http://knowledgeforge.net/ckan/hg/raw-file/tip/pip-requirements.txt
 
-Or for version xxx::
+  Or for version xxx::
 
   $ wget http://knowledgeforge.net/ckan/hg/raw-file/ckan-xxx/pip-requirements.txt
 
-And install:
+  And install::
+
   $ pip -E pyenv install -r pip-requirements.txt 
 
 
-7. Setup Paster with the database::
+7. Create paster database config file
+  ::
 
-    $ paster make-config ckan demo.ckan.net.ini
-
-Now edit demo.ckan.net.ini to set the sqlalchemy.url database connection
-information using values from previous step.
+  $ paster make-config ckan demo.ckan.net.ini
 
 
-8. Initialise Database::
+8. Edit demo.ckan.net.ini to set the sqlalchemy.url database connection
+   information using values from step 3.
 
-    $ paster db init --config demo.ckan.net.ini
+
+9. Initialise database
+  ::
+
+  $ . pyenv/bin/activate
+  $ paster --plugin ckan db init --config demo.ckan.net.ini
 
 
-9. Setup Apache with Ckan
+10. Setup Apache with Ckan
 
-Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
+  Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
 
     <VirtualHost *:80>
         ServerName demo.ckan.net
@@ -101,7 +120,7 @@ Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
         CustomLog /var/log/apache2/ckan.net.custom.log combined
     </VirtualHost>
 
-Still in ~/demo.ckan.net directory::
+  And whilst still in the ~/demo.ckan.net directory::
 
     $ mkdir data
     $ chmod g+w -R data
@@ -109,5 +128,5 @@ Still in ~/demo.ckan.net directory::
     $ ln -s pyenv/src/ckan/who.ini ./
 
 
-10. Restart Apache and browse website at http://demo.ckan.net/
+11. Restart Apache and browse website at http://demo.ckan.net/
 

@@ -20,12 +20,14 @@ class PackageController(BaseController):
     authorizer = ckan.authz.Authorizer()
 
     def index(self):
-        c.package_count = model.Session.query(model.Package).count()
+        query = ckan.authz.Authorizer().authorized_query(c.user, model.Package)
+        c.package_count = query.count()
         return render('package/index')
 
     def list(self):
+        query = ckan.authz.Authorizer().authorized_query(c.user, model.Package)
         c.page = Page(
-            collection=model.Package.active(),
+            collection=query,
             page=request.params.get('page', 1),
             items_per_page=50
         )
@@ -42,7 +44,7 @@ class PackageController(BaseController):
                 'filter_by_downloadable': c.downloadable_only,
                 })
             # package search
-            query = Search().query(options)
+            query = Search().query(options, username=c.user)
             c.page = Page(
                 collection=query,
                 page=request.params.get('page', 1),
@@ -284,8 +286,8 @@ class PackageController(BaseController):
                 model.Session.commit()
 
         # retrieve pkg again ...
-        pkg = model.Package.by_name(id)
-        fs = ckan.forms.package_authz_fs.bind(pkg.roles)
+        c.pkg = model.Package.by_name(id)
+        fs = ckan.forms.package_authz_fs.bind(c.pkg.roles)
         c.form = fs.render()
         c.new_roles_form = ckan.forms.new_package_roles_fs.render()
         return render('package/authz')

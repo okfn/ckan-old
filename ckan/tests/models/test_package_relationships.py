@@ -133,6 +133,33 @@ class TestSimple:
         assert pkgb_object_query.count() == 3, pkgb_object_query.count()
         for rel in pkgb_object_query:
             assert rel.object == self.pkgb
+        
+class TestComplicated:
+    @classmethod
+    def setup_class(self):
+        create = CreateTestData
+        create.create_family_test_data()
+
+    @classmethod
+    def teardown_class(self):
+        model.repo.rebuild_db()
+
+    def test_rels(self):
+        rels = model.Package.by_name(u'homer').relationships
+        assert len(rels) == 5, '%i: %s' % (len(rels), [str(rel) for rel in rels])
+        def check(rels, subject, type, object):
+            for rel in rels:
+                if rel.subject.name == subject and rel.type == type and rel.object.name == object:
+                    return
+            assert 0, 'Could not find relationship in: %r' % rels
+        check(rels, 'homer', 'child_of', 'abraham')
+        check(rels, 'bart', 'child_of', 'homer')
+        check(rels, 'lisa', 'child_of', 'homer')
+        check(rels, 'homer_derived', 'derives_from', 'homer')
+        check(rels, 'homer', 'depends_on', 'beer')
+        rels = model.Package.by_name(u'bart').relationships
+        assert len(rels) == 1, len(rels)
+        check(rels, 'bart', 'child_of', 'homer')
 
         pkgc_subject_query = model.PackageRelationship.by_subject(self.pkgc)
         assert pkgc_subject_query.count() == 1, pkgc_subject_query.count()

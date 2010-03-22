@@ -13,13 +13,17 @@ class TestRest(TestController):
 
     @classmethod
     def setup_class(self):
+        try:
+            CreateTestData.delete()
+        except:
+            pass
         model.Session.remove()
         CreateTestData.create()
         model.Session.add(model.Package(name=u'--'))
         rev = model.repo.new_revision()
         model.repo.commit_and_remove()
 
-        self.testpackage_license_id = u'agpl-v3'
+        self.testpackage_license_id = u'gpl-3.0'
         self.testpackagevalues = {
             'name' : u'testpkg',
             'title': u'Some Title',
@@ -778,7 +782,7 @@ class TestSearch(TestController):
             'resources': [{u'url':u'http://blahblahblah.mydomain',
                            u'format':u'', u'description':''}],
             'tags': ['russion', 'novel'],
-            'license': u'agpl-v3',
+            'license': u'gpl-3.0',
             'extras': {'national_statistic':'yes',
                        'geographic_coverage':'England, Wales'},
         }

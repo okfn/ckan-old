@@ -16,7 +16,7 @@ class TestPackage:
         self.pkg1 = model.Package(name=self.name)
         model.Session.add(self.pkg1)
         self.pkg1.notes = self.notes
-        self.pkg1.license_id = u'agpl-v3'
+        self.pkg1.license_id = u'gpl-3.0'
         model.Session.commit()
         model.Session.remove()
 
@@ -31,12 +31,8 @@ class TestPackage:
         package = model.Package.by_name(self.name)
         assert package.name == self.name
         assert package.notes == self.notes
-        assert package.license_id == u'agpl-v3'
-        assert package.license.id == u'agpl-v3'
-        assert package.license.title == u'Affero GNU Public License', package.license
-        # Check unregistered license_id causes license to be 'None'.
-        package.license_id = u'zzzzzzz'
-        assert package.license == None
+        assert package.license.id == u'gpl-3.0'
+        assert package.license.title == u'OSI Approved::GNU General Public License version 3.0 (GPLv3)', package.license.title
 
     def test_update_package(self):
         newnotes = u'Written by Beethoven'
@@ -52,6 +48,13 @@ class TestPackage:
         assert outpkg.notes == newnotes
         assert len(outpkg.all_revisions) > 0
         assert outpkg.all_revisions[0].revision.author == author
+
+    def test_package_license(self):
+        # Check unregistered license_id causes license to be 'None'.
+        package = model.Package.by_name(self.name)
+        package.license_id = u'zzzzzzz'
+        assert package.license == None
+        model.Session.remove() # forget change
 
 
 class TestPackageWithTags:

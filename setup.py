@@ -19,6 +19,7 @@ setup(
     keywords='data packaging component tool server',
     long_description =__long_description__,
     install_requires=[
+        'routes>=1.9,<=1.11.99',
         'vdm>=0.6,<0.6.99',
         'ckanclient>=0.1,<0.2.99',
         'Pylons>=0.9.7.0,<0.9.7.99',
@@ -36,7 +37,8 @@ setup(
         # does not declare the dependency!
         # (not sure we need this except in tests but ...)
         'WebOb',
-        'FormAlchemy>=1.2.3',
+        # 1.3.2 changes signature of formalchemy.helpers.select in a way that breaks out code
+        'FormAlchemy>=1.2.3,<=1.3.1',
         # Excel libaries are only for importer tool
         # 'xlrd>=0.7.1',
         # 'xlwt>=0.7.2',

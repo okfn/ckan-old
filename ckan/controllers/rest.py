@@ -96,13 +96,6 @@ class BaseRestController(BaseController):
             if not self._check_access(pkg, model.Action.READ):
                 return ''
             _dict = pkg.as_dict()
-            # Set 'license' in _dict to cater for old clients.
-            # Todo: Remove this ASAP.
-            pkg_license = pkg.license
-            if pkg_license:
-                _dict['license'] = pkg_license.title
-            else:
-                _dict['license'] = _dict.get('license_id', '')
             return self._finish_ok(_dict)
         elif register == u'package' and (subregister == 'relationships' or subregister in model.PackageRelationship.get_all_types()):
             pkg1 = self._get_pkg(id)

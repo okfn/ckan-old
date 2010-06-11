@@ -52,7 +52,7 @@ You might add a tag by POSTing to ``http://ckan.net/api/rest/package/osm`` this:
 
 "tags": ["navigation", "openstreetmap", "map", "geo", "geodata", "xml", "publicdomain", "osm", "my-new-tag"]
 
-So that the system knows who is making this change, you need to send your API key in the headers (see below).
+So that the system knows who is making this change, you need to send your API key in the headers - see `CKAN API Keys`_.
 
 
 Overview
@@ -72,6 +72,7 @@ identified in server responses. For example, after successfully POSTing data
 to a model register, the location of the newly created entity is indicated in
 the method response's 'Location' header.
 
+
 API Versions
 ============
 
@@ -85,6 +86,8 @@ For example versions 1 and 2 of the CKAN API are located here:
 
 ``http://ckan.net/api/1/rest/package``
 ``http://ckan.net/api/2/rest/package``
+
+Clients that don't supply the version number access version 1 by default.
 
 
 CKAN Model API
@@ -188,7 +191,6 @@ Here are the methods of the Model API.
 * POSTing data to a register resource will create a new entity, whilst PUT/POSTing data to an entity resource will update an existing entity.
 
 
-
 Model API Data Formats
 ----------------------
 
@@ -240,8 +242,6 @@ Todo: Fork API documentation.
 | Revision        | { id: Uuid, message: String, author: String,               |
 |                 | timestamp: Date-Time, packages: Package-List }             |
 +-----------------+------------------------------------------------------------+
-| Revision-List   | [ Uuid, Uuid, Uuid, ... ]                                  |
-+-----------------+------------------------------------------------------------+
 | License-List    | [ License, License, License, ... ]                         |
 +-----------------+------------------------------------------------------------+
 | License         | { id: Name-String, title: String, is_okd_compliant:        |
@@ -279,15 +279,15 @@ Search API Resources
 
 Here are the published resources of the CKAN Search API.
 
-+-------------------+--------------------------+
-| Resource          | Location                 |
-+===================+==========================+
-| Package Search    | ``/api/search/package``  |
-+-------------------+--------------------------+
-| Revision Search   | ``/api/search/revision`` |
-+-------------------+--------------------------+
-| Tag Counts        | ``/api/tag_counts``      |
-+-------------------+--------------------------+
++---------------------------+--------------------------+
+| Resource                  | Location                 |
++===========================+==========================+
+| Package Search            | ``/api/search/package``  |
++---------------------------+--------------------------+
+| Revision Search           | ``/api/search/revision`` |
++---------------------------+--------------------------+
+| Tag Counts                | ``/api/tag_counts``      |
++---------------------------+--------------------------+
 
 See below for more information about package and revision search parameters.
 
@@ -297,18 +297,18 @@ Search API Methods
 
 Here are the methods of the CKAN Search API.
 
-+-------------------------------+--------+------------------+-------------------+
-| Resource                      | Method | Request          | Response          |
-+===============================+========+==================+===================+ 
-| Package Search                | POST   | Query-String     | Search-Response   | 
-+-------------------------------+--------+------------------+-------------------+
-| Revision Search               | POST   | Query-String     | Search-Response   | 
-+-------------------------------+--------+------------------+-------------------+
-| Tag Counts                    | GET    |                  | Tag-Count-List    | 
-+-------------------------------+--------+------------------+-------------------+
++-------------------------------+--------+------------------------+-------------------+
+| Resource                      | Method | Request                | Response          |
++===============================+========+========================+===================+ 
+| Package Search                | POST   | Package-Search-Params  | Search-Response   | 
++-------------------------------+--------+------------------------+-------------------+
+| Revision Search               | POST   | Revision-Search-Params | Revision-List     | 
++-------------------------------+--------+------------------------+-------------------+
+| Tag Counts                    | GET    |                        | Tag-Count-List    | 
++-------------------------------+--------+------------------------+-------------------+
 
 It is also possible to supply the search parameters in the URL of a GET request, 
-for example ``/api/rest/search?q=geodata&amp;allfields=1``.
+for example ``/api/search/package?q=geodata&amp;allfields=1``.
 
 
 Search API Data Formats
@@ -316,24 +316,29 @@ Search API Data Formats
 
 Here are the data formats for the Search API.
 
-+-----------------+------------------------------------------------------------+
-| Name            | Format                                                     |
-+=================+============================================================+
-| Query-String    | { Query-Key: Query-Value, Query-Key: Query-Value, ... }    |
-+-----------------+------------------------------------------------------------+
-| Search-Response | { count: Count-int, results: [Package, Package, ... ] }    |
-+-----------------+------------------------------------------------------------+
-| Tag-Count-List  | [ [Name-String, Integer], [Name-String, Integer], ... ]    |
-+-----------------+------------------------------------------------------------+
++-----------------------+------------------------------------------------------------+
+| Name                  | Format                                                     |
++=======================+============================================================+
+| Package-Search-Params | { Param-Key: Param-Value, Param-Key: Param-Value, ... }    |
+| Revision-Search-Params| See below for full details of search parameters across the | 
+|                       | various domain objects.                                    |
++-----------------------+------------------------------------------------------------+
+| Search-Response       | { count: Count-int, results: [Package, Package, ... ] }    |
++-----------------------+------------------------------------------------------------+
+| Revision-List         | [ Revision-Id, Revision-Id, Revision-Id, ... ]             |
+|                       | NB: Ordered with youngest revision first                   |
++-----------------------+------------------------------------------------------------+
+| Tag-Count-List        | [ [Name-String, Integer], [Name-String, Integer], ... ]    |
++-----------------------+------------------------------------------------------------+
 
-The ``Package`` data format is defined in the CKAN Model API.
+The ``Package`` and ``Revision`` data formats are as defined in `Model API Data Formats`_.
 
 
 Package Search Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +-----------------------+---------------+----------------------------------+----------------------------------+
-| Query-Key             | Query-Value   | Example                          |  Notes                           |
+| Param-Key             | Param-Value   | Example                          |  Notes                           |
 +=======================+===============+==================================+==================================+
 | q                     | Search-String || q=geodata                       | Criteria to search the package   |
 |                       |               || q=government+sweden             | fields for. URL-encoded search   |
@@ -386,7 +391,7 @@ Revision Search Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 +-----------------------+---------------+-----------------------------------------------------+----------------------------------+
-| Key                   |    Value      | Example                                             |  Notes                           |
+| Param-Key             | Param-Value   | Example                                             |  Notes                           |
 +=======================+===============+=====================================================+==================================+ 
 | since_time            | Date-Time     | since_time=2010-05-05T19:42:45.854533               | The time can be less precisely   |
 |                       |               |                                                     | stated (e.g 2010-05-05).         |

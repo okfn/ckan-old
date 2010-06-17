@@ -1,11 +1,11 @@
 import tempfile
-import simplejson
 import os
 
 import ckan
 from ckan.tests import *
 import ckan.model as model
 import ckan.lib.dumper as dumper
+from ckan.lib.helpers import json
 from ckan.lib.dumper import Dumper
 simple_dumper = dumper.SimpleDumper()
 
@@ -34,6 +34,7 @@ class TestSimpleDump(TestController):
         assert 'annakarenina.com/download' in res, res
         assert 'Index of the novel' in res, res
         assert 'joeadmin' not in res, res
+        self.assert_correct_field_order(res)
         
     def test_simple_dump_json(self):
         dump_file = tempfile.TemporaryFile()
@@ -45,6 +46,14 @@ class TestSimpleDump(TestController):
         assert 'genre' in res, res
         assert 'romantic novel' in res, res
         assert 'joeadmin' not in res, res
+        self.assert_correct_field_order(res)
+
+    def assert_correct_field_order(self, res):
+        correct_field_order = ('id', 'name', 'title', 'version', 'url')
+        field_position = [res.find('"%s"' % field) for field in correct_field_order]
+        field_position_sorted = field_position[:]
+        field_position_sorted.sort()
+        assert field_position == field_position_sorted, field_position
 
 class TestDumper(object):
 # TODO this doesn't work on sqlite - we should fix this
@@ -64,7 +73,7 @@ class TestDumper(object):
 
     def test_dump(self):
         assert os.path.exists(self.outpath) 
-        dumpeddata = simplejson.load(open(self.outpath))
+        dumpeddata = json.load(open(self.outpath))
         assert dumpeddata['version'] == ckan.__version__
         tables = dumpeddata.keys()
         for key in ['Package', 'Tag', 'Group', 'PackageGroup', 'PackageExtra']:

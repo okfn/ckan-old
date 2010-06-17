@@ -23,7 +23,7 @@ setup(
         'vdm>=0.6,<0.8.99',
         'ckanclient>=0.1,<0.3.99',
         'Pylons>=0.9.7.0,<0.9.7.99',
-        'Genshi>=0.4',
+        'Genshi>=0.6',
         'SQLAlchemy>=0.4.8,<=0.4.99',
         'repoze.who>=1.0.0,<1.0.99',
         'repoze.who.plugins.openid>=0.5,<0.5.99',
@@ -37,13 +37,16 @@ setup(
         # does not declare the dependency!
         # (not sure we need this except in tests but ...)
         'WebOb',
-        'FormAlchemy>=1.3.3',
+        'FormAlchemy>=1.3.4',
         'carrot>=0.10.2',
         'blinker>=1.0',
         # Excel libaries are only for importer tool
         # 'xlrd>=0.7.1',
         # 'xlwt>=0.7.2',
     ],
+    extras_require = {
+        'solr': ['solrpy>=0.9'],
+    },
     packages=find_packages(exclude=['ez_setup']),
     include_package_data=True,
     package_data={'ckan': ['i18n/*/LC_MESSAGES/*.mo']},

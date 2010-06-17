@@ -59,7 +59,12 @@ Now you can then do the deployment with something like::
 
   $ psql -l
 
-  Create a user if one doesn't already exist::
+  It is advisable to ensure that the encoding of databases is 'UTF8', or 
+  internationalisation may be a problem. Since changing the encoding of Postgres
+  may mean deleting existing databases, it is suggested that this is fixed before
+  continuing with the CKAN install.
+
+  Create a database user if one doesn't already exist::
 
   $ sudo -u postgres createuser -S -D -R -P <user>
 
@@ -149,8 +154,8 @@ Now you can then do the deployment with something like::
         # pass authorization info on (needed for rest api)
         WSGIPassAuthorization On
 
-        ErrorLog /var/log/apache2/ckan.error.log
-        CustomLog /var/log/apache2/ckan.custom.log combined
+        ErrorLog /var/log/apache2/demo.ckan.net.error.log
+        CustomLog /var/log/apache2/demo.ckan.net.custom.log combined
     </VirtualHost>
 
 

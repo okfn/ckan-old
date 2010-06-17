@@ -15,6 +15,7 @@ There are several general Pylons options, and all the CKAN-specific ones are in 
 
 Once the config file is changed, Apache needs to be restarted to read in the new changes.
 
+
 sqlalchemy.url
 --------------
 
@@ -25,6 +26,7 @@ Example::
 This defines the database that CKAN is to use. The format is::
 
  sqlalchemy.url = postgres://USERNAME:PASSWORD@HOST/DBNAME
+
 
 package_form
 ------------
@@ -49,7 +51,7 @@ Example::
 
 By telling CKAN what hostname it is served at, it can provide backlinks to packages in two places:
 
-1. The REST API: when you read a package register it contains a property giving a link to the package on CKAN. e.g. `"ckan_url": "http://ckan.net/package/pollution-2008"
+1. The REST API: when you read a package register it contains a property giving a link to the package on CKAN. e.g. `"ckan_url": "http://ckan.net/package/pollution-2008"`
 
 2. The backend RDF generator can use the CKAN package URLs for the subject in the triples.
 
@@ -101,6 +103,53 @@ Example::
 Use this to specify the default language of the text displayed in the CKAN web UI. The default is English (en).
 
 
+extra_template_paths
+--------------------
+
+Example::
+
+ extra_template_paths=/home/okfn/brazil_ckan_config/templates
+
+To customise the display of CKAN you can supply replacements for the Genshi template files. Use this option to specify where CKAN should look for them, before reverting to the 'ckan/templates' folder. You can supply more than one folder, separating the paths with a comma (,).
+
+The example value for the extra_template_paths option could, for example, be used to override CKAN templates with these ones:
+
+ * /home/okfn/brazil_ckan_config/templates/layout.html
+ * /home/okfn/brazil_ckan_config/templates/package/edit.html
+
+More details about this feature are found at: http://wiki.okfn.org/ckan/doc/theme
+
+
+extra_public_paths
+------------------
+
+Example::
+
+ extra_public_paths = /home/okfn/brazil_ckan_config/public
+
+To customise the display of CKAN you can supply replacements for staticly served files such as HTML, CSS, script and PNG files. Use this option to specify where CKAN should look for them, before reverting to the 'ckan/public' folder. You can supply more than one folder, separating the paths with a comma (,).
+
+The example value for the extra_public_paths option could, for example, be used to provide an image and stylesheet:
+
+ * /home/okfn/brazil_ckan_config/public/images/brazil.png
+ * /home/okfn/brazil_ckan_config/public/css/extra.css
+
+More details about this feature are found at: http://wiki.okfn.org/ckan/doc/theme
+
+
+package_new_return_url & package_edit_return_url
+------------------------------------------------
+
+Example::
+
+ package_new_return_url = http://datadotgc.ca/new_dataset_complete?name=<NAME>
+ package_edit_return_url = http://datadotgc.ca/dataset/<NAME>
+
+To allow the Edit Package and New Package forms to be integrated into a third party interface, setting these options allows you to set a the return address. So when the user has completed the form and presses 'commit', the user is redirected to the URL specified.
+
+The '<NAME>' string is replaced with the name of the package edited. Full details of this process are given in :doc:`form-integration`.
+
+
 carrot_messaging_library
 ------------------------
 
@@ -119,4 +168,5 @@ This is the messaging library backend to use. Options::
  * queue - native Python Queue (default)
 
 See `carrot documentation <http://packages.python.org/carrot/index.html>`_ for details.
+
 

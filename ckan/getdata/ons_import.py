@@ -90,7 +90,8 @@ class Data(object):
         date_released = u''
         if item['pubDate']:
             try:
-                date_released = field_types.DateType.iso_to_db(item['pubDate'], '%a, %d %b %Y %H:%M:%S %Z')
+                iso_date = field_types.DateType.strip_iso_timezone(item['pubDate'])
+                date_released = field_types.DateType.iso_to_db(iso_date, '%a, %d %b %Y %H:%M:%S')
             except TypeError, e:
                 self._log(logging.warning, 'Warning: Could not read format of publication (release) date: %r' % e.args)
         extras['date_released'] = date_released
@@ -189,7 +190,7 @@ class Data(object):
             assert department in schema_gov.government_depts, department
             return department
         else:
-            if dept_given and dept_given not in ['Office for National Statistics', 'Health Protection Agency', 'Information Centre for Health and Social Care', 'General Register Office for Scotland', 'Northern Ireland Statistics and Research Agency', 'National Health Service in Scotland', 'National Treatment Agency', 'Police Service of Northern Ireland (PSNI)', 'Child Maintenance and Enforcement Commission', 'Health and Safety Executive', 'ISD Scotland (part of NHS National Services Scotland)']:
+            if dept_given and dept_given not in ['Office for National Statistics', 'Health Protection Agency', 'Information Centre for Health and Social Care', 'General Register Office for Scotland', 'Northern Ireland Statistics and Research Agency', 'National Health Service in Scotland', 'National Treatment Agency', 'Police Service of Northern Ireland (PSNI)', 'Child Maintenance and Enforcement Commission', 'Health and Safety Executive', 'NHS National Services Scotland', 'ISD Scotland (part of NHS National Services Scotland)']:
                 self._log(logging.warning, 'Warning: Double check this is not a gvt department source: %s' % dept_given)
             return None
         

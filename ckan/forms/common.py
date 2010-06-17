@@ -3,7 +3,7 @@ import re
 from formalchemy import helpers as fa_h
 import formalchemy
 import genshi
-from pylons.templating import render
+from pylons.templating import render_genshi as render
 from pylons import c
 from pylons.i18n import _, ungettext, N_, gettext
 
@@ -56,7 +56,7 @@ def field_readonly_renderer(key, value, newline_reqd=True):
 class TextExtraRenderer(formalchemy.fields.TextFieldRenderer):
     def _get_value(self):
         extras = self.field.parent.model.extras # db
-        return self._value or extras.get(self.field.name, u'') or u''
+        return self.value or extras.get(self.field.name, u'') or u''
 
     def render(self, **kwargs):
         value = self._get_value()
@@ -139,7 +139,7 @@ class DateExtraField(ConfiguredField):
             if not self.is_readonly():
                 pkg = self.model
                 form_date = self._deserialize()
-                date_db = field_types.DateType.form_to_db(form_date)
+                date_db = field_types.DateType.form_to_db(form_date, may_except=False)
                 pkg.extras[self.name] = date_db
 
     class DateExtraRenderer(TextExtraRenderer):
@@ -157,21 +157,27 @@ class DateRangeExtraField(ConfiguredField):
     '''A form field for two DateType fields, representing a date range,
     stored in 'extra' fields.'''
     def get_configured(self):
-        return self.DateRangeField(self.name).with_renderer(self.DateRangeRenderer).validate(field_types.DateType.form_validator)
+        return self.DateRangeField(self.name).with_renderer(self.DateRangeRenderer).validate(self.validator)
+
+    def validator(self, form_date_tuple, field=None):
+        assert isinstance(form_date_tuple, tuple), form_date_tuple
+        from_, to_ = form_date_tuple
+        return field_types.DateType.form_validator(from_) and \
+               field_types.DateType.form_validator(to_)
 
     class DateRangeField(formalchemy.Field):
         def sync(self):
             if not self.is_readonly():
                 pkg = self.model
                 vals = self._deserialize() or u''
-                pkg.extras[self.name + '-from'] = field_types.DateType.form_to_db(vals[0])
-                pkg.extras[self.name + '-to'] = field_types.DateType.form_to_db(vals[1])
+                pkg.extras[self.name + '-from'] = field_types.DateType.form_to_db(vals[0], may_except=False)
+                pkg.extras[self.name + '-to'] = field_types.DateType.form_to_db(vals[1], may_except=False)
 
     class DateRangeRenderer(formalchemy.fields.FieldRenderer):
         def _get_value(self):
             extras = self.field.parent.model.extras
-            if self._value:
-                from_form, to_form = self._value
+            if self.value:
+                from_form, to_form = self.value
             else:
                 from_ = extras.get(self.field.name + '-from') or u''
                 to = extras.get(self.field.name + '-to') or u''
@@ -225,8 +231,8 @@ class TextRangeExtraField(RegExRangeValidatingField):
     class TextRangeRenderer(formalchemy.fields.FieldRenderer):
         def _get_value(self):
             extras = self.field.parent.model.extras
-            if self._value:
-                from_form, to_form = self._value
+            if self.value:
+                from_form, to_form = self.value
             else:
                 from_ = extras.get(self.field.name + '-from') or u''
                 to = extras.get(self.field.name + '-to') or u''
@@ -303,12 +309,12 @@ class ResourcesField(ConfiguredField):
 
     class ResourcesRenderer(formalchemy.fields.FieldRenderer):
         def render(self, **kwargs):
-            c.resources = self._value or []
+            c.resources = self.value or []
             # [:] does a copy, so we don't change original
             c.resources = c.resources[:]
             c.resources.extend([None])
             c.id = self.name
-            return render('package/form_resources')            
+            return render('package/form_resources.html')            
 
         def stringify_value(self, v):
             # actually returns dict here for _value
@@ -501,7 +507,7 @@ class ExtrasField(ConfiguredField):
                 field_values.append({
                     'name':'%s-newfield%s' % (self.name, i)})
             c.fields = field_values
-            html = render('package/form_extra_fields')
+            html = render('package/form_extra_fields.html')
             return h.literal(html)
 
         def render_readonly(self, **kwargs):
@@ -581,7 +587,7 @@ class SuggestedTextExtraField(TextExtraField):
     class SelectRenderer(formalchemy.fields.FieldRenderer):
         def _get_value(self, **kwargs):
             extras = self.field.parent.model.extras
-            return unicode(kwargs.get('selected', '') or self._value or extras.get(self.field.name, ''))
+            return unicode(kwargs.get('selected', '') or self.value or extras.get(self.field.name, ''))
 
         def render(self, options, **kwargs):
             selected = self._get_value()
@@ -621,7 +627,7 @@ class CheckboxExtraField(TextExtraField):
     class CheckboxExtraRenderer(formalchemy.fields.CheckBoxFieldRenderer):
         def _get_value(self):
             extras = self.field.parent.model.extras
-            return bool(self._value or extras.get(self.field.name) == u'yes')
+            return bool(self.value or extras.get(self.field.name) == u'yes')
 
         def render(self, **kwargs):
             value = self._get_value()

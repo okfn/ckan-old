@@ -1,5 +1,3 @@
-import simplejson
-
 import ckan.model as model
 from ckan.tests import *
 from ckan.lib.base import *
@@ -12,9 +10,9 @@ class TestGroupEditAuthz(TestController):
         model.repo.new_revision()
         self.admin = 'madeup-administrator'
         user = model.User(name=unicode(self.admin))
-        model.Session.save(user)
+        model.Session.add(user)
         self.another = u'madeup-another'
-        model.Session.save(model.User(name=unicode(self.another)))
+        model.Session.add(model.User(name=unicode(self.another)))
         self.groupname = u'test6'
         group = model.Group(name=self.groupname)
         model.setup_default_user_roles(group, admins=[user])

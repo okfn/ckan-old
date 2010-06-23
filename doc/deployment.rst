@@ -6,43 +6,79 @@ Here's an example for deploying CKAN to http://demo.ckan.net/ via Apache.
 1. Ideally setup the server with Ubuntu.
 
 
-2. Ensure these packages are installed::
+2. Ensure these packages are installed:
    (e.g. sudo apt-get install <package-name>)
-  * mercurial             Source control
-  * python                Python interpreter
-  * apache2               Web server
-  * libapache2-mod-python Apache module for python
-  * libapache2-mod-wsgi   Apache module for WSGI
-  * postgresql            PostgreSQL database
-  * libpq-dev             PostgreSQL library
-  * python-psycopg2       PostgreSQL python module
-  * python-virtualenv     Python virtual environment sandboxing
-  * pip                   Python installer (use easy_install for this)
+
+   =====================  ============================================
+   Package                Notes
+   =====================  ============================================
+   mercurial              Source control
+   python                 Python interpreter
+   apache2                Web server
+   libapache2-mod-python  Apache module for python
+   libapache2-mod-wsgi    Apache module for WSGI
+   postgresql             PostgreSQL database
+   libpq-dev              PostgreSQL library
+   python-psycopg2        PostgreSQL python module
+   python-setuptools      Python package management
+   =====================  ============================================
+
+   Now use easy_install (which comes with python-setuptools) to install
+   these packages:
+   (e.g. sudo easy_install <package-name>)
+
+   =====================  ============================================
+   Package                Notes
+   =====================  ============================================
+   python-virtualenv      Python virtual environment sandboxing
+   pip                    Python installer (use easy_install for this)
+   =====================  ============================================
+
+   Check that you received:
+
+    * virtualenv v1.3 or later
+    * pip v0.7.1 or later
+
+
+NB: Instead of using these manual instructions, steps 3 to 10 can be achieved
+automatically on a remote server by running the fabric deploy script on 
+your local machine. You need fabric and python-dev modules installed locally.
+If you don't have the ckan repo checked out locally then download the 
+fabfile.py using::
+
+  $ wget https://knowledgeforge.net/ckan/hg/raw-file/default/fabfile.py
+
+Now you can then do the deployment with something like::
+
+  $ fab config_0:demo.ckan.net,hosts_str=someserver.net,db_pass=my_password deploy
+
 
 3. Setup a PostgreSQL database
 
-  List existing databases:
+  List existing databases::
+
   $ psql -l
 
-  Create a user if one doesn't already exist
+  It is advisable to ensure that the encoding of databases is 'UTF8', or 
+  internationalisation may be a problem. Since changing the encoding of Postgres
+  may mean deleting existing databases, it is suggested that this is fixed before
+  continuing with the CKAN install.
+
+  Create a database user if one doesn't already exist::
+
   $ sudo -u postgres createuser -S -D -R -P <user>
+
   Replace <user> with the unix username whose home directory has the ckan install.
   It should prompt you for a new password for the CKAN data in the database.
 
-  Now create the database
+  Now create the database::
+
   $ sudo -u postgres createdb -O <user> ckandemo
-
-
-NB Instead of using these manual instruction, steps 4 to 7 can be achieved
-  automatically using the fabric deploy script. Add your server details 
-  to fabfile.py and then run something like:
-
-  $ fab demo_server_net deploy
 
 
 4. Create a python virtual environment
 
-In a general user's home directory::
+  In a general user's home directory::
 
   $ mkdir demo.ckan.net
   $ cd demo.ckan.net
@@ -52,7 +88,7 @@ In a general user's home directory::
 
 5. Create the Pylons WSGI script
 
-Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
+  Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
 
     import os
     here = os.path.abspath(os.path.dirname(__file__))
@@ -64,35 +100,51 @@ Create a file ~/demo.ckan.net/pyenv/bin/pylonsapp_modwsgi.py as follows::
 
 6. Install code and dependent packages into the environment
 
-For the most recent version use::
+  For the most recent version use::
 
   $ wget http://knowledgeforge.net/ckan/hg/raw-file/tip/pip-requirements.txt
 
-Or for version xxx::
+  Or for version xxx::
 
   $ wget http://knowledgeforge.net/ckan/hg/raw-file/ckan-xxx/pip-requirements.txt
 
-And install:
+  And install::
+
   $ pip -E pyenv install -r pip-requirements.txt 
 
 
-7. Create paster database config file::
+7. Create paster database config file
 
-    $ paster make-config ckan demo.ckan.net.ini
+  ::
+
+  $ paster make-config ckan demo.ckan.net.ini
 
 
 8. Edit demo.ckan.net.ini to set the sqlalchemy.url database connection
-information using values from step 3.
+   information using values from step 3.
 
 
-9. Initialise Database::
-    $ . pyenv/bin/activate
-    $ paster --plugin ckan db init --config demo.ckan.net.ini
+9. Initialise database
+
+  ::
+
+  $ . pyenv/bin/activate
+  $ paster --plugin ckan db init --config demo.ckan.net.ini
 
 
-10. Setup Apache with Ckan
+10. Set some permissions for Pylons
 
-Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
+  Whilst still in the ~/demo.ckan.net directory::
+
+    $ mkdir data
+    $ chmod g+w -R data
+    $ sudo chgrp -R www-data data
+    $ ln -s pyenv/src/ckan/who.ini ./
+
+
+11. Setup Apache with Ckan
+
+  Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
 
     <VirtualHost *:80>
         ServerName demo.ckan.net
@@ -102,17 +154,17 @@ Create file /etc/apache2/sites-enabled/demo.ckan.net as follows::
         # pass authorization info on (needed for rest api)
         WSGIPassAuthorization On
 
-        ErrorLog /var/log/apache2/ckan.net.error.log
-        CustomLog /var/log/apache2/ckan.net.custom.log combined
+        ErrorLog /var/log/apache2/ckan.error.log
+        CustomLog /var/log/apache2/ckan.custom.log combined
     </VirtualHost>
 
-Still in ~/demo.ckan.net directory::
 
-    $ mkdir data
-    $ chmod g+w -R data
-    $ sudo chgrp -R www-data data
-    $ ln -s pyenv/src/ckan/who.ini ./
+12. Restart Apache
+
+  ::
+
+  $ sudo /etc/init.d/apache2 restart
 
 
-11. Restart Apache and browse website at http://demo.ckan.net/
+13. Browse website at http://demo.ckan.net/
 

@@ -1,10 +1,10 @@
 import sqlalchemy
-import simplejson
 
 from pylons import config
 
 import ckan.model as model
-from licenses import LicenseList
+
+from ckan import authz
 
 ENABLE_CACHING = bool(config.get('enable_caching', ''))
 LIMIT_DEFAULT = 20
@@ -26,6 +26,7 @@ class SearchOptions:
     order_by = 'rank'
     all_fields = False
     return_objects = False
+    ref_entity_with_attr = 'name'
 
     def __init__(self, kw_dict):
         if not kw_dict.keys():
@@ -50,7 +51,7 @@ class SearchOptions:
     def __str__(self):
         return repr(self.__dict__)
 
-class Search:
+class SQLSearch:
     _tokens = [ 'name', 'title', 'notes', 'tags', 'groups', 'author', 'maintainer', 'update_frequency', 'geographic_granularity', 'geographic_coverage', 'temporal_granularity', 'temporal_coverage', 'national_statistic', 'categories', 'precision', 'department', 'agency', 'external_reference']
     # Note: all tokens must be in the search vector (see model/full_search.py)
     _open_licenses = None
@@ -60,7 +61,7 @@ class Search:
         options = SearchOptions({'q':query_string})
         return self.run(options)
 
-    def query(self, options):
+    def query(self, options, username=None):
         '''For the given search options, returns a query object.'''
         self._options = options
         general_terms, field_specific_terms = self._parse_query_string()
@@ -70,19 +71,21 @@ class Search:
             return None
 
         if self._options.entity == 'package':
-            query = self._build_package_query(general_terms, field_specific_terms)
+            query = authz.Authorizer().authorized_query(username, model.Package)
+            query = self._build_package_query(query, general_terms, field_specific_terms)
         elif self._options.entity == 'tag':
             query = self._build_tags_query(general_terms)
         elif self._options.entity == 'group':
-            query = self._build_groups_query(general_terms)
+            query = authz.Authorizer().authorized_query(username, model.Group)
+            query = self._build_groups_query(query, general_terms)
         else:
             # error
             pass
         return query
 
-    def run(self, options):
+    def run(self, options, username=None):
         '''For the given search options, returns query results.'''
-        query = self.query(options)
+        query = self.query(options, username)
 
         self._results = {}
         if not query:
@@ -151,9 +154,10 @@ class Search:
         
         return general_terms, field_specific_terms
 
-    def _build_package_query(self, general_terms, field_specific_terms):
+    def _build_package_query(self, authorized_package_query,
+                             general_terms, field_specific_terms):
         make_like = lambda x,y: x.ilike('%' + y + '%')
-        query = model.Session.query(model.Package)
+        query = authorized_package_query
         query = query.filter(model.package_search_table.c.package_id==model.Package.id)
 
         # Full search by general_terms (and field specific terms but not by field)
@@ -186,7 +190,7 @@ class Search:
 
         # Filter for options
         if self._options.filter_by_downloadable:
-            query = query.join('resources', aliased=True).\
+            query = query.join('package_resources_all', aliased=True).\
                     filter(sqlalchemy.and_(
                 model.PackageResource.state==model.State.ACTIVE,
                 model.PackageResource.package_id==model.Package.id))
@@ -206,7 +210,6 @@ class Search:
                 raise NotImplemented
 
         query = query.distinct()
-        query = query.filter(model.Package.state == model.State.ACTIVE)
         return query
 
     def _build_tags_query(self, general_terms):
@@ -215,8 +218,8 @@ class Search:
             query = query.filter(model.Tag.name.contains(term.lower()))
         return query
 
-    def _build_groups_query(self, general_terms):
-        query = model.Session.query(model.Group)
+    def _build_groups_query(self, authorized_package_query, general_terms):
+        query = authorized_package_query
         for term in general_terms:
             query = query.filter(model.Group.name.contains(term.lower()))
         return query
@@ -273,12 +276,11 @@ class Search:
             )).filter(make_like(model.PackageExtra.value, value))
         return query
         
-    def _update_open_licenses(self):
+    def _update_open_licenses(self):  # Update, or init?
         self._open_licenses = []
-        for license_name in LicenseList.all_formatted:
-            _license = model.License.by_name(license_name, autoflush=False)
-            if _license and _license.isopen():                
-                self._open_licenses.append(_license.id)
+        for license in model.Package.get_license_register().values():
+            if license and license.isopen():
+                self._open_licenses.append(license.id)
 
     def _format_results(self):
         if not self._options.return_objects:
@@ -286,7 +288,7 @@ class Search:
                 results = []
                 for entity in self._results['results']:
                     if ENABLE_CACHING:
-                        cachekey = u'%s-%s' % (type(entity), entity.id)
+                        cachekey = u'%s-%s' % (unicode(str(type(entity))), entity.id)
                         result = our_cache.get_value(key=cachekey,
                                 createfunc=lambda: entity.as_dict(), expiretime=3600)
                     else:
@@ -294,5 +296,115 @@ class Search:
                     results.append(result)
                 self._results['results'] = results
             else:
-                self._results['results'] = [entity.name for entity in self._results['results']]
- 
+                attr_name = self._options.ref_entity_with_attr
+                self._results['results'] = [getattr(entity, attr_name) for entity in self._results['results']]
+    
+    def index_package(self, package):
+        pass
+        
+    def index_group(self, group):
+        pass
+        
+    def index_tag(self, tag):
+        pass
+
+
+class SolrSearch(SQLSearch):
+    _solr_fields = ["entity_type", "tags", "groups", "res_description", "res_format", 
+                    "res_url", "text", "urls", "indexed_ts"]
+
+    def __init__(self, solr_url=None):
+        if solr_url is None:
+            solr_url = config.get('solr_url', 'http://localhost:8983/solr')
+        # import inline to avoid external dependency 
+        from solr import SolrConnection # == solrpy 
+        self._conn = SolrConnection(solr_url)
+
+    def _open_license_query_part():
+        if self._open_licenses is None:
+            self._update_open_licenses()
+        licenses = ["+%d" % id for id in self.open_licenses]
+        licenses = " OR ".join(licenses)
+        return "license_id:(%s) " % licenses
+
+    def _build_package_query(self, authorized_package_query,
+                             general_terms, field_specific_terms):
+        orm_query = authorized_package_query
+        orm_query = orm_query.filter(model.package_search_table.c.package_id==model.Package.id)
+
+        # Full search by general_terms (and field specific terms but not by field)
+        query = u""
+        for field, term in field_specific_terms.items():
+            query += field + u":" + term + u" "
+        for term in general_terms:
+            query += term + u" "
+
+        # Filter for options
+        if self._options.filter_by_downloadable:
+            query += u"res_url:[* TO *] " # not null resource URL 
+        if self._options.filter_by_openness:
+            query += self._open_license_query_part()
+        
+        self._solr_results = self._conn.query(query, #sort=sorting, 
+                                        rows=self._options.limit,
+                                        start=self._options.offset)
+        entity_ids = [r.get('id') for r in self._solr_results.results]
+        orm_query = orm_query.filter(model.Package.id.in_(entity_ids))
+        orm_query = orm_query.add_column(sqlalchemy.func.now())
+        
+        if self._options.order_by and self._options.order_by != 'rank':
+            if hasattr(model.Package, self._options.order_by):
+                model_attr = getattr(model.Package, self._options.order_by)
+                orm_query = orm_query.order_by(model_attr)
+        
+        return orm_query
+        
+    def _run_query(self, query):
+        if self._options.entity == 'package':
+            self._results['count'] = query.count()
+            results = [(r, self._solr_results.get('score', 0)) for r in query]
+            self._results['results'] = results
+        else:
+            SQLSearch._run_query(self, query)
+    
+    def index_package(self, package):
+        return self.index_package_dict(package.as_dict())
+    
+    def index_package_dict(self, package):
+        index_fields = self._solr_fields + package.keys()
+            
+        # include the extras in the main namespace
+        extras = package.get('extras', {})
+        if 'extras' in package:
+            del package['extras']
+        for (key, value) in extras.items():
+            if key not in index_fields:
+                package[key] = value
+
+        # flatten the structure for indexing: 
+        for resource in package.get('resources', []):
+            for (okey, nkey) in [('description', 'res_description'),
+                                 ('format', 'res_format'),
+                                 ('url', 'res_url')]:
+                package[nkey] = package.get(nkey, []) + [resource.get(okey, u'')]
+        if 'resources' in package:
+            del package['resources']
+
+        package['entity_type'] = u"package"
+        package = dict([(str(k), v) for (k, v) in package.items()])
+
+        # send to solr:    
+        self._conn.add(**package)
+
+
+ENGINES = {
+    'sql': SQLSearch, 
+    'solr': SolrSearch
+    }
+
+
+def make_search(engine=None, **kwargs):
+    if engine is None:
+        engine = config.get('search_engine', 'sql')
+    klass = ENGINES.get(engine.strip().lower())
+    return klass(**kwargs)

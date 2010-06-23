@@ -67,7 +67,7 @@ class TestController(object):
         rev = model.repo.new_revision()
         for i in range(0,100):
             name = u"testpackage%s" % i
-            model.Session.save(model.Package(name=name))
+            model.Session.add(model.Package(name=name))
         model.Session.commit()
         model.Session.remove()
 
@@ -83,7 +83,7 @@ class TestController(object):
     def create_200_tags(self):
         for i in range(0,200):
             name = u"testtag%s" % i
-            model.Session.save(model.Tag(name=name))
+            model.Session.add(model.Tag(name=name))
             print "Created tag: %s" % name
         model.Session.commit()
         model.Session.remove()
@@ -108,6 +108,13 @@ class TestController(object):
         'strips html to just the <div id="main"> section'
         the_html = html.body.decode('utf8')
         return the_html[the_html.find(u'<div id="main">'):the_html.find(u'<!-- /main -->')]
+
+    def preview_div(self, html):
+        'strips html to just the <div id="preview"> section'
+        the_html = html.body.decode('utf8')
+        preview_html = the_html[the_html.find(u'<div id="preview"'):the_html.find(u'<!-- /preview -->')]
+        assert preview_html, the_html
+        return preview_html
 
     def sidebar(self, html):
         'strips html to just the <div id="primary"> section'
@@ -173,3 +180,27 @@ class TestController(object):
                 return # found it
         # didn't find it
         assert 0, "Couldn't find %s in html. Closest matches were:\n%s" % (', '.join(["'%s'" % html.encode('utf8') for html in html_to_find]), '\n'.join([tag.encode('utf8') for tag in partly_matching_tags]))
+
+    @property
+    def war(self):
+        return self.get_package_by_name(u'warandpeace')
+
+    @property
+    def anna(self):
+        return self.get_package_by_name(u'annakarenina')
+
+    def get_package_by_name(self, package_name):
+        return model.Package.by_name(package_name)
+
+    @classmethod
+    def purge_packages(self, pkg_names):
+        for pkg_name in pkg_names:
+            pkg = model.Package.by_name(unicode(pkg_name))
+            if pkg:
+                pkg.purge()
+        model.repo.commit_and_remove()
+
+    @classmethod
+    def purge_all_packages(self):
+        all_pkg_names = [pkg.name for pkg in model.Session.query(model.Package)]
+        self.purge_packages(all_pkg_names)

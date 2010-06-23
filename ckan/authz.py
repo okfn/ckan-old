@@ -31,6 +31,15 @@ class Authorizer(object):
 
     @classmethod
     def is_authorized(cls, username, action, domain_object):
+        '''Authorize `action` by `username` on `domain_object`.
+        
+        :param username: a user identifier (may be e.g. an IP address).
+        :param action: a ckan.model.authz.Action enumeration.
+        :param domain_object: the domain object instance (or class/type in the
+            case of e.g. 'create' action).
+
+        :returns: True or False
+        '''
         if isinstance(username, str):
             username = username.decode('utf8')
         assert isinstance(username, unicode), type(username)
@@ -128,6 +137,45 @@ class Authorizer(object):
                                                 role=model.Role.ADMIN)
         admins = [do_role.user for do_role in q.all()]
         return admins
+
+    @classmethod
+    def authorized_query(cls, username, entity):
+        q = model.Session.query(entity)
+        if username:
+            user = model.User.by_name(username)
+        else:
+            user = None
+
+        visitor = model.User.by_name(model.PSEUDO_USER__VISITOR)
+        logged_in = model.User.by_name(model.PSEUDO_USER__LOGGED_IN)
+        action = model.Action.READ
+
+        if not cls.is_sysadmin(username):
+            q = q.outerjoin('roles')
+            if hasattr(entity, 'state'):
+                state = entity.state
+            else:
+                state = model.State.ACTIVE
+            if user:
+                q = q.filter(sa.or_(model.UserObjectRole.user==user,
+                                   model.UserObjectRole.user==visitor,
+                                   model.UserObjectRole.user==logged_in))
+                q = q.filter(sa.or_(
+                    sa.and_(model.UserObjectRole.role==model.RoleAction.role,
+                            model.RoleAction.action==action,
+                            state==model.State.ACTIVE),
+                    model.UserObjectRole.role==model.Role.ADMIN))
+            else:
+                q = q.filter(model.UserObjectRole.user==visitor)
+                q = q.filter(
+                    sa.and_(model.UserObjectRole.role==model.RoleAction.role,
+                            model.RoleAction.action==action,
+                            state==model.State.ACTIVE),
+                    )
+                
+            q = q.distinct()
+
+        return q
 
     @classmethod
     def _get_roles_query(cls, domain_obj):

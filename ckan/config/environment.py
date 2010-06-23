@@ -3,13 +3,15 @@ import os
 
 from sqlalchemy import engine_from_config
 from pylons import config
+from pylons.i18n.translation import ugettext
+from genshi.template import TemplateLoader
+from genshi.filters.i18n import Translator
 
 import ckan.lib.app_globals as app_globals
 import ckan.lib.helpers
 from ckan.config.routing import make_map
+from ckan import model
 
-from genshi.filters.i18n import Translator
-from pylons.i18n.translation import ugettext
 
 def load_environment(global_conf, app_conf):
     """Configure the Pylons environment via the ``pylons.config``
@@ -23,22 +25,35 @@ def load_environment(global_conf, app_conf):
                  templates=[os.path.join(root, 'templates')])
 
     # Initialize config with the basic options
-    config.init_app(global_conf, app_conf, package='ckan',
-                    template_engine='genshi', paths=paths)
+    config.init_app(global_conf, app_conf, package='ckan', paths=paths)
 
     config['routes.map'] = make_map()
-    config['pylons.g'] = app_globals.Globals()
+    config['pylons.app_globals'] = app_globals.Globals()
     config['pylons.h'] = ckan.lib.helpers
 
-    # Customize templating options via this variable
-    tmpl_options = config['buffet.template_options']
+    ## redo template setup to use genshi.search_path (so remove std template setup)
+    template_paths = [paths['templates'][0]]
+    extra_template_paths = app_conf.get('extra_template_paths', '')
+    if extra_template_paths:
+        # must be first for them to override defaults
+        template_paths = extra_template_paths.split(',') + template_paths
+
     # Translator (i18n)
     translator = Translator(ugettext)
     def template_loaded(template):
         template.filters.insert(0, translator)
-    tmpl_options["genshi.loader_callback"] = template_loaded
+
+    # Create the Genshi TemplateLoader
+    # config['pylons.app_globals'].genshi_loader = TemplateLoader(
+    #    paths['templates'], auto_reload=True)
+    # tmpl_options["genshi.loader_callback"] = template_loaded
+    config['pylons.app_globals'].genshi_loader = TemplateLoader(
+        template_paths, auto_reload=True, callback=template_loaded)
 
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
-    config['pylons.g'].sa_engine = engine_from_config(config, 'sqlalchemy.')
+
+    # Setup the SQLAlchemy database engine
+    engine = engine_from_config(config, 'sqlalchemy.')
+    model.init_model(engine)
 

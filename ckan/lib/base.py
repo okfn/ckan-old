@@ -52,13 +52,7 @@ class BaseController(WSGIController):
             model.Session.remove()
 
     def _get_pkg(self, id):
-        # Try to find a package id...
-        pkg = model.Session.query(model.Package).get(id)
-        if pkg == None:
-            # ...otherwise try to find a package name.
-            pkg = model.Package.by_name(id)
-        return pkg
-    # Todo: Make sure package names can't be changed to look like package IDs?
+        return model.Package.get(id)
 
     def _get_request_data(self):
         try:

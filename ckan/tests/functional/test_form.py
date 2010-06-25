@@ -62,7 +62,6 @@ class BaseFormsApiCase(TestController):
             field_name = 'Package-%s-%s' % (package_id, key)
             form[field_name] = value
         form_data = form.submit_fields()
-        departments = ['department1', 'department2', 'department3']
         request_data = {
             'form_data': form_data,
             'log_message': 'Unit-testing the Forms API...',
@@ -144,12 +143,17 @@ class TestFormsApi(BaseFormsApiCase):
         #time.sleep(2)
         try:
             package = self.get_package_by_name(self.package_name)
-            res = self.get(controller='form', action='package_edit_example', id=package.id)
+            package_id = package.id
+            res = self.get(controller='form', action='package_edit_example', id=package_id)
+            form = res.forms[0]
+            form_data = form.submit_fields()
+            import urllib
+            params = urllib.urlencode(form_data)
+            offset = url_for(controller='form', action='package_edit_example', id=package_id)
+            res = self.app.post(offset, params=params, status=[200], extra_environ=self.extra_environ)
+            body = res.body
+            assert '<html' in body, "The result does NOT have an HTML doc tag: %s" % body
+            assert "Submitted OK" in body, body
         finally:
             pass # self._stop_ckan_server(self.ckan_server)
-        body = res.body
-        assert '<html' in body, "The result does NOT have an HTML doc tag: %s" % body
-        assert '<form' in body, "The result does NOT have an HTML form tag: %s" % body
-        assert '<fieldset' in body, "The result does NOT have an HTML fieldset tag: %s" % body
-
 

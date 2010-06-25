@@ -119,19 +119,26 @@ class FormController(BaseController):
         PackageSaver().commit_pkg(bound_fieldset, superfluous, id, log_message, author) 
 
     def package_edit_example(self, id):
+        client_user = self._get_user(u'tester')
+        api_key = client_user.apikey
+        self.ckan_client = self._start_ckan_client(api_key=api_key)
         if request.method == 'GET':
-            client_user = self._get_user(u'tester')
-            api_key = client_user.apikey
-            self.ckan_client = self._start_ckan_client(api_key=api_key)
             fieldset_html = self.ckan_client.package_edit_form_get(id)
             if fieldset_html == None:
                 raise Exception, "Can't read package edit form??"
             form_html = '<form action="" method="post">' + fieldset_html + '<input type="submit"></form>'
-            page_html = '<html><h1>My Package Edit Form</h1>%s</html>' % form_html
-            return page_html
         else:
             form_data = request.params.items()
-            return str(form_data)
+            request_data = {
+                'form_data': form_data,
+                'log_message': 'Package edit example...',
+                'author': 'automated test suite',
+            }
+            form_html = self.ckan_client.package_edit_form_post(id, request_data)
+            if form_html == '""':
+                form_html = "Submitted OK"
+        page_html = '<html><head><title>My Package Edit Page</title></head><body><h1>My Package Edit Form</h1>%s</html>' % form_html
+        return page_html
 
     def _start_ckan_client(self, api_key, base_location='http://127.0.0.1:5000/api'):
         import ckanclient

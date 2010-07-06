@@ -619,6 +619,7 @@ u with umlaut \xc3\xbc
             assert 'Packages - Edit' in res, res
 
             # Check form is correctly filled
+            pkg = model.Package.by_name(pkg_name)
             self.check_form_filled_correctly(res, pkg=pkg, log_message='')
 
             # Amend form

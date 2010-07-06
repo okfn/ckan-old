@@ -2,39 +2,64 @@ import re
 
 import sqlalchemy
 
-from meta import *
+from meta import Table, Column, UnicodeText, ForeignKey, mapper, metadata
+from notifier import DomainObjectNotification, Notification
+from ckan.lib.async_notifier import AsyncConsumer, EXCHANGE
+
+__all__ = ['SearchIndexManager', 'SearchIndexer', 'package_search_table']
+
+class SearchIndexManager(AsyncConsumer):
+    '''Waits for async notifications about package updates and sends them to
+    SearchIndexer.
+    In tests, this class is instantiated and then run().
+    In deployment, this file is opened in its own process/shell.
+    '''
+    def __init__ (self):
+        queue_name = 'search_indexer'
+        routing_key = '*'
+        super(SearchIndexManager, self).__init__(queue_name, routing_key)
+
+        self.indexer = SearchIndexer()
+
+    def callback(self, notification):
+        if isinstance(notification, DomainObjectNotification):
+            self.indexer.update_vector(notification)
 
 
-class SearchVectorTrigger(sqlalchemy.orm.interfaces.MapperExtension):
-    match_bad_chars = re.compile('[%"\'\\\r\n#><]')
-    
-    def after_insert(self, mapper, connection, instance):
-        self.update_vector(instance, connection)
+class SearchIndexer(object):
+    def update_vector(self, notification):
+        pkg_dicts = []
+        if isinstance(notification, DomainObjectNotification):
+            obj_dict = notification['payload']
+            if notification.domain_object_class == 'Package':
+                pkg_dicts = [obj_dict]
+            elif notification.domain_object_class == 'PackageTag':
+                if instance.package:
+                    pkg_dicts = obj_dict['package']
+                else:
+                    pkg_dicts = []
+            elif notification.domain_object_class == 'Group':
+                pkg_dicts = obj_dict['packages']
 
-    def after_update(self, mapper, connection, instance):
-        self.update_vector(instance, connection)
-
-    def update_vector(self, instance, engine):
-        if instance.__class__.__name__ == 'Package':
-            pkgs = [instance]
-        elif instance.__class__.__name__ == 'PackageTag':
-            if instance.package:
-                pkgs = [instance.package]
-            else:
-                pkgs = []
-        elif instance.__class__.__name__ == 'Group':
-            pkgs = instance.packages
-
-        for pkg in pkgs:
+        for pkg_dict in pkg_dicts:
             try:
-                pkg_dict = pkg.as_dict() 
-                                     # note: license and extras aren't
-                                     # updated here yet for new items?
-                self.update_package_vector(pkg_dict, engine)
+                # note: license and extras aren't
+                # updated here yet for new items?
+                self.update_package_vector(pkg_dict)
             except:
                 raise
 
-    def update_package_vector(self, pkg_dict, engine):
+    def update_package_vector(self, pkg_dict):
+        import meta
+        engine = meta.engine
+
+        # Check the package exists
+        from core import Package
+        pkg = meta.Session.query(Package).get(unicode(pkg_dict['id']))
+        if not pkg:
+            print 'Not indexing missing package', pkg_dict['name']
+            return
+        
         if isinstance(pkg_dict['tags'], (list, tuple)):
             pkg_dict['tags'] = ' '.join(pkg_dict['tags'])
         if isinstance(pkg_dict['groups'], (list, tuple)):
@@ -60,22 +85,25 @@ class SearchVectorTrigger(sqlalchemy.orm.interfaces.MapperExtension):
         sql = "SELECT package_id FROM package_search WHERE package_id = %s"
         res = engine.execute(sql, pkg_dict['id'])
         pkgs = res.fetchall()
+        res.close()
         if not pkgs:
             sql = "INSERT INTO package_search VALUES (%%s, %s)" % vector_sql
             params = [pkg_dict['id']] + params
         else:
             sql = "UPDATE package_search SET search_vector=%s WHERE package_id=%%s" % vector_sql
             params.append(pkg_dict['id'])
-        res = engine.execute(sql, *params)
+        res = engine.execute(sql, params)
         # uncomment this to print lexemes
         # sql = "SELECT package_id, search_vector FROM package_search WHERE package_id = %s"
         # res = engine.execute(sql, pkg_dict['id'])
         # print res.fetchall()
+        res.close()
 
 
 def setup_db(event, schema_item, engine):
     sql = 'ALTER TABLE package_search ADD COLUMN search_vector tsvector'
-    engine.execute(sql)
+    res = engine.execute(sql)
+    res.close()
 
 package_search_table = Table('package_search', metadata,
         Column('package_id', UnicodeText, ForeignKey('package.id'), primary_key=True),
@@ -87,3 +115,5 @@ class PackageSearch(object):
 mapper(PackageSearch, package_search_table, properties={})
 
 package_search_table.append_ddl_listener('after-create', setup_db)
+
+

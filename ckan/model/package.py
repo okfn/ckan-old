@@ -6,7 +6,6 @@ import vdm.sqlalchemy
 
 from types import make_uuid
 from core import *
-import full_search
 from license import License, LicenseRegister
 from domain_object import DomainObject
 

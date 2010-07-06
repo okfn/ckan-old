@@ -22,11 +22,13 @@ from paste.deploy import loadapp
 from routes import url_for
 
 from ckan.lib.create_test_data import CreateTestData
+from test_search_indexer import SearchIndexManagerThread
 
 
 __all__ = ['url_for',
         'TestController',
         'CreateTestData',
+        'TestControllerWithSearchIndexer',
         ]
 
 here_dir = os.path.dirname(os.path.abspath(__file__))
@@ -279,3 +281,12 @@ class TestController(object):
         if os.system("kill -9 %d" % pid):
             raise Exception, "Can't kill foreign CKAN instance (pid: %d)." % pid
 
+
+class TestControllerWithSearchIndexer(TestController):
+    @classmethod
+    def setup_class(cls):
+        SearchIndexManagerThread.start()
+
+    @classmethod
+    def teardown_class(cls):
+        SearchIndexManagerThread.stop()

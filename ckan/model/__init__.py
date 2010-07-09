@@ -5,13 +5,14 @@ from tag import *
 from package_mapping import *
 from user import user_table, User
 from group import *
-from full_search import package_search_table
+from search_index import *
 from authz import *
 from extras import *
 from resource import *
 from rating import *
 from package_relationship import PackageRelationship
 from changeset import Changeset, Change, Changemask
+from notifier import *
 
 import ckan.migration
 

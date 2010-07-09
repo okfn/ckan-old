@@ -71,7 +71,7 @@ class SearchOptions:
         return repr(self.__dict__)
 
 class SQLSearch:
-    # Note: all tokens must be in the search vector (see model/full_search.py)
+    # Note: all tokens must be in the search vector (see model/search_index.py)
     _open_licenses = None
 
     def search(self, query_string):

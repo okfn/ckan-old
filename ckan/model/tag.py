@@ -5,7 +5,6 @@ import vdm.sqlalchemy
 from core import *
 from domain_object import DomainObject
 from package import Package
-import full_search
 
 __all__ = ['tag_table', 'package_tag_table', 'Tag', 'PackageTag',
            'PackageTagRevision']
@@ -72,8 +71,9 @@ mapper(Tag, tag_table, properties={
 mapper(PackageTag, package_tag_table, properties={
     },
     order_by=package_tag_table.c.id,
-    extension = [vdm.sqlalchemy.Revisioner(package_tag_revision_table),
-                 full_search.SearchVectorTrigger()],
+    extension=[vdm.sqlalchemy.Revisioner(package_tag_revision_table),
+               notifier.PackageRelationNotifierMapperTrigger(),
+               ],
     )
 
 from package_mapping import *

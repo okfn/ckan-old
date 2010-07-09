@@ -6,7 +6,6 @@ import vdm.sqlalchemy
 
 from types import make_uuid
 from core import *
-import full_search
 from license import License, LicenseRegister
 from domain_object import DomainObject
 
@@ -136,7 +135,7 @@ class Package(vdm.sqlalchemy.RevisionedObjectMixin,
         _dict['license'] = self.license.title if self.license else _dict.get('license_id', '')
         _dict['tags'] = [tag.name for tag in self.tags]
         _dict['groups'] = [group.name for group in self.groups]
-        _dict['extras'] = dict([(extra.key, extra.value) for key, extra in self._extras.items()])
+        _dict['extras'] = dict([(key, value) for key, value in self.extras.items()])
         _dict['ratings_average'] = self.get_average_rating()
         _dict['ratings_count'] = len(self.ratings)
         _dict['resources'] = [{'url':res.url, 'format':res.format, 'description':res.description} for res in self.resources]

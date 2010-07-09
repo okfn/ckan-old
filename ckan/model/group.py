@@ -1,6 +1,8 @@
 from datetime import datetime
+
 from meta import *
 from core import *
+from domain_object import DomainObject
 from package import *
 from types import make_uuid
 import vdm.sqlalchemy
@@ -66,9 +68,8 @@ mapper(Group, group_table, properties={
         backref='groups',
         order_by=package_table.c.name
     )},
-# Not needed - triggers anyway       
-#    extension = full_search.SearchVectorTrigger(),
 )
 
-mapper(PackageGroup, package_group_table)
-
+mapper(PackageGroup, package_group_table,
+#       extension=[notifier.PackageRelationNotifierMapperTrigger()],
+)

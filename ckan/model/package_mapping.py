@@ -3,7 +3,7 @@ import vdm.sqlalchemy
 import tag
 from core import *
 from package import *
-import full_search
+import search_index
 
 __all__ = ['PackageRevision']
 
@@ -18,13 +18,14 @@ mapper(Package, package_table, properties={
     'package_tags':relation(tag.PackageTag, backref='package',
         cascade='all, delete', #, delete-orphan',
         ),
-    'package_search':relation(full_search.PackageSearch,
+    'package_search':relation(search_index.PackageSearch,
         cascade='all, delete', #, delete-orphan',
         ),
     },
     order_by=package_table.c.name,
-    extension = [vdm.sqlalchemy.Revisioner(package_revision_table),
-                 full_search.SearchVectorTrigger()]
+    extension=[vdm.sqlalchemy.Revisioner(package_revision_table),
+               notifier.NotifierMapperTrigger(),
+               ],
     )
 
 vdm.sqlalchemy.modify_base_object_mapper(Package, Revision, State)

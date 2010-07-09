@@ -13,6 +13,7 @@ import sys
 import re
 from unittest import TestCase
 from nose.tools import assert_equal
+import time
 
 import sgmllib
 import pkg_resources
@@ -25,8 +26,9 @@ from ckan.lib.create_test_data import CreateTestData
 
 
 __all__ = ['url_for',
-        'TestController',
-        'CreateTestData',
+           'TestController',
+           'CreateTestData',
+           'TestSearchIndexer',
         ]
 
 here_dir = os.path.dirname(os.path.abspath(__file__))
@@ -278,4 +280,21 @@ class TestController(object):
         pid = int(pid)
         if os.system("kill -9 %d" % pid):
             raise Exception, "Can't kill foreign CKAN instance (pid: %d)." % pid
+
+
+class TestSearchIndexer:
+    indexer = None
+    
+    def __init__(self):
+        TestSearchIndexer.indexer = model.SearchIndexManager()
+        TestSearchIndexer.indexer.clear_queue()
+        self.indexer.consumer.close()
+
+    @classmethod
+    def index(cls):
+        message = cls.indexer.consumer.fetch()
+        while message is not None:
+            cls.indexer.async_callback(message.payload, message)
+            message = cls.indexer.consumer.fetch()
+        cls.indexer.consumer.close()        
 

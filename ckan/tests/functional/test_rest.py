@@ -914,6 +914,7 @@ class SearchApiTestCase(ApiTestCase):
 
     @classmethod
     def setup_class(self):
+        indexer = TestSearchIndexer()
         CreateTestData.create()
         self.testpackagevalues = {
             'name' : u'testpkg',
@@ -927,6 +928,7 @@ class SearchApiTestCase(ApiTestCase):
                        'geographic_coverage':'England, Wales'},
         }
         CreateTestData.create_arbitrary(self.testpackagevalues)
+        indexer.index()
         self.base_url = self.offset('/search/package')
 
     @classmethod

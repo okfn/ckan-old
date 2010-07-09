@@ -42,6 +42,8 @@ setup(
         # (not sure we need this except in tests but ...)
         'WebOb',
         'FormAlchemy>=1.3.4',
+        'carrot>=0.10.5',
+        'blinker>=1.0',
         # Excel libaries are only for importer tool
         # 'xlrd>=0.7.1',
         # 'xlwt>=0.7.2',
@@ -71,7 +73,7 @@ setup(
     create-test-data = ckan.lib.create_test_data:CreateTestData
     test-data = ckan.lib.cli:TestData
     sysadmin = ckan.lib.cli:Sysadmin
-    create-search-index = ckan.lib.cli:CreateSearchIndex
+    search-index = ckan.lib.cli:SearchIndex
     ratings = ckan.lib.cli:Ratings
     changes = ckan.lib.cli:Changes
 

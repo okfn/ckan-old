@@ -148,3 +148,35 @@ Example::
 To allow the Edit Package and New Package forms to be integrated into a third party interface, setting these options allows you to set a the return address. So when the user has completed the form and presses 'commit', the user is redirected to the URL specified.
 
 The '<NAME>' string is replaced with the name of the package edited. Full details of this process are given in :doc:`form-integration`.
+
+
+carrot_messaging_library
+------------------------
+
+Example::
+
+ carrot_messaging_library=pyamqplib
+
+This is the messaging library backend to use. Options::
+
+ * pyamqplib - AMQP (e.g. for RabbitMQ)
+
+ * pika - alternative AMQP
+
+ * stomp - python-stomp
+
+ * queue - native Python Queue (default) - NB this isn't inter-process
+
+See `carrot documentation <http://packages.python.org/carrot/index.html>`_ for details.
+
+
+amqp_hostname, amqp_port, amqp_user_id, amqp_password
+-----------------------------------------------------
+
+Example::
+ amqp_hostname=myserver.com
+ amqp_port=5672
+ amqp_user_id=guest
+ amqp_password=guest
+
+These are the setup parameters for AMQP messaging. These only apply if the messageing library has been set to use AMQP (see `carrot_messaging_library`_).

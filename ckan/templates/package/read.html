@@ -1,8 +1,9 @@
 <html xmlns:py="http://genshi.edgewall.org/"
   xmlns:i18n="http://genshi.edgewall.org/i18n"
-  xmlns:xi="http://www.w3.org/2001/XInclude">
+  xmlns:xi="http://www.w3.org/2001/XInclude"
+  py:strip="">
 
-  <py:def function="page_title">Packages - ${c.pkg.name}</py:def>
+  <py:def function="page_title">${c.pkg.title or c.pkg.name} - Data Packages</py:def>
 
   <py:match path="primarysidebar">
     <div class="box">
@@ -128,7 +129,7 @@
   </py:if>
 
   <py:def function="optional_feed">
-  <link rel="alternate" type="application/atom+xml" title="Package History" href="/package/history/${c.pkg.name}?format=atom&amp;days=7" />
+  <link rel="alternate" type="application/atom+xml" title="${g.site_title} - Package History - ${c.pkg.name}" href="/package/history/${c.pkg.name}?format=atom&amp;days=7" />
   </py:def>
 
   <xi:include href="layout.html" />

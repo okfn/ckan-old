@@ -23,7 +23,7 @@ setup(
         'vdm>=0.6,<0.8.99',
         'ckanclient>=0.1,<0.3.99',
         'Pylons>=0.9.7.0,<0.9.7.99',
-        'Genshi>=0.4',
+        'Genshi>=0.6',
         'SQLAlchemy>=0.4.8,<=0.4.99',
         'repoze.who>=1.0.0,<1.0.99',
         # ensure openid is 2.2.1, since the latest (2.2.3) which is pulled
@@ -42,6 +42,8 @@ setup(
         # (not sure we need this except in tests but ...)
         'WebOb',
         'FormAlchemy>=1.3.4',
+        'carrot>=0.10.5',
+        'blinker>=1.0',
         # Excel libaries are only for importer tool
         # 'xlrd>=0.7.1',
         # 'xlwt>=0.7.2',
@@ -56,7 +58,6 @@ setup(
             ('**.py', 'python', None),
             ('templates/_util.html', 'ignore', None),
             ('templates/importer/**', 'ignore', None),
-            ('templates/rest/**', 'ignore', None),
             ('templates/**.html', 'genshi', None),
             ('public/**', 'ignore', None),
             ]},
@@ -72,9 +73,10 @@ setup(
     create-test-data = ckan.lib.create_test_data:CreateTestData
     test-data = ckan.lib.cli:TestData
     sysadmin = ckan.lib.cli:Sysadmin
-    create-search-index = ckan.lib.cli:CreateSearchIndex
+    search-index = ckan.lib.cli:SearchIndexCommand
     ratings = ckan.lib.cli:Ratings
     changes = ckan.lib.cli:Changes
+    notifications = ckan.lib.cli:Notifications
 
     [ckan.forms]
     standard = ckan.forms.package:get_standard_fieldset

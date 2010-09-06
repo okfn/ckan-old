@@ -11,6 +11,7 @@ from webhelpers.html.tags import *
 from webhelpers.markdown import markdown
 from webhelpers import paginate
 from webhelpers.text import truncate
+from pylons.decorators.cache import beaker_cache
 from routes import url_for, redirect_to
 from alphabet_paginate import AlphaPage
 try:
@@ -34,6 +35,14 @@ def subnav_link(c, text, action, **kwargs):
         class_=('active' if c.action == action else '')
     )
 
+@beaker_cache(expire=600, cache_response=False)
+def linked_user(username):
+    from ckan import model
+    user = model.User.by_name(unicode(username))
+    if user:
+        return link_to(username, url_for(controller='user', action='read', id=user.id))
+    return username
+
 def icon_url(name):
     return '/images/icons/%s.png' % name
 
@@ -46,8 +55,8 @@ class Page(paginate.Page):
     # our custom layout set as default.
     def pager(self, *args, **kwargs):
         kwargs.update(
-            format="<div class='pager'>$link_previous ~2~ $link_next</div>",
-            symbol_previous='« Prev', symbol_next='Next »'
+            format=u"<div class='pager'>$link_previous ~2~ $link_next</div>",
+            symbol_previous=u'« Prev', symbol_next=u'Next »'
         )
         return super(Page, self).pager(*args, **kwargs)
 

@@ -19,6 +19,7 @@ class BaseApiController(BaseController):
     api_version = ''
     ref_package_by = ''
     ref_group_by = ''
+    content_type_json = 'application/json;charset=utf-8'
 
     def _ref_package(self, package):
         assert self.ref_package_by in ['id', 'name']
@@ -28,6 +29,9 @@ class BaseApiController(BaseController):
         assert self.ref_group_by in ['id', 'name']
         return getattr(group, self.ref_group_by)
 
+    def _ref_harvest_source(self, harvest_source):
+        return getattr(harvest_source, 'id')
+
     def _list_package_refs(self, packages):
         return [getattr(p, self.ref_package_by) for p in packages]
 
@@ -35,8 +39,8 @@ class BaseApiController(BaseController):
         return [getattr(p, self.ref_group_by) for p in groups]
 
     def _finish_ok(self, response_data=None):
-        response.status_int = 200
-        response.headers['Content-Type'] = 'application/json;charset=utf-8'
+        # response.status_int = 200 -- already will be so
+        response.headers['Content-Type'] = self.content_type_json
         response_msg = ''
         if response_data is not None:
             response_msg = json.dumps(response_data)
@@ -107,9 +111,23 @@ class BaseRestController(BaseApiController):
             licenses = LicenseRegister().values()
             response_data = [l.as_dict() for l in licenses]
             return self._finish_ok(response_data)
+        elif register == u'harvestsource':
+            filter_kwds = {}
+            if id == 'publisher':
+                filter_kwds['publisher_ref'] = subregister
+            objects = model.HarvestSource.filter(**filter_kwds)
+            response_data = [o.id for o in objects]
+            return self._finish_ok(response_data)
+        elif register == u'harvestingjob':
+            filter_kwds = {}
+            if id == 'status':
+                filter_kwds['status'] = subregister.lower().capitalize()
+            objects = model.HarvestingJob.filter(**filter_kwds)
+            response_data = [o.id for o in objects]
+            return self._finish_ok(response_data)
         else:
             response.status_int = 400
-            return ''
+            return gettext('Cannot list entity of this type: %s') % register
 
     def show(self, register, id, subregister=None, id2=None):
         log.debug('show %s/%s/%s/%s' % (register, id, subregister, id2))
@@ -187,9 +205,23 @@ class BaseRestController(BaseApiController):
                 return ''            
             response_data = [pkgtag.package.name for pkgtag in obj.package_tags]
             return self._finish_ok(response_data)
+        elif register == u'harvestsource':
+            obj = model.HarvestSource.get(id, default=None)
+            if obj is None:
+                response.status_int = 404
+                return ''            
+            response_data = obj.as_dict()
+            return self._finish_ok(response_data)
+        elif register == u'harvestingjob':
+            obj = model.HarvestingJob.get(id, default=None)
+            if obj is None:
+                response.status_int = 404
+                return ''            
+            response_data = obj.as_dict()
+            return self._finish_ok(response_data)
         else:
             response.status_int = 400
-            return ''
+            return gettext('Cannot read entity of this type: %s') % register
 
     def _represent_package(self, package):
         return package.as_dict(ref_package_by=self.ref_package_by, ref_group_by=self.ref_group_by)
@@ -247,6 +279,9 @@ class BaseRestController(BaseApiController):
             elif register == 'rating' and not subregister:
                 # Create a Rating.
                 return self._create_rating(request_data)
+            elif register == 'harvestingjob' and not subregister:
+                # Create a HarvestingJob.
+                return self._create_harvesting_job(request_data)
             else:
                 # Complain about unsupported entity type.
                 log.error('Cannot create new entity of this type: %s %s' % (register, subregister))
@@ -315,7 +350,7 @@ class BaseRestController(BaseApiController):
         elif register == 'group' and not subregister:
             entity = model.Group.by_name(id)
         else:
-            reponse.status_int = 400
+            response.status_int = 400
             return gettext('Cannot update entity of this type: %s') % register
         if not entity:
             response.status_int = 404
@@ -402,8 +437,11 @@ class BaseRestController(BaseApiController):
         elif register == 'group' and not subregister:
             entity = model.Group.by_name(id)
             revisioned_details = None
+        elif register == 'harvestingjob' and not subregister:
+            entity = model.HarvestingJob.get(id, default=None)
+            revisioned_details = None
         else:
-            reponse.status_int = 400
+            response.status_int = 400
             return gettext('Cannot delete entity of this type: %s %s') % (register, subregister or '')
         if not entity:
             response.status_int = 404
@@ -561,7 +599,7 @@ class BaseRestController(BaseApiController):
         if opts_err:
             self.log.debug(opts_err)
             response.status_int = 400
-            response.headers['Content-Type'] = 'application/json'
+            response.headers['Content-Type'] = self.content_type_json
             return opts_err
 
         user = model.User.by_name(self.rest_api_user)
@@ -570,6 +608,34 @@ class BaseRestController(BaseApiController):
         package = self._get_pkg(package_ref)
         ret_dict = {'rating average':package.get_average_rating(),
                     'rating count': len(package.ratings)}
+        return self._finish_ok(ret_dict)
+
+    def _create_harvesting_job(self, params):
+        """ Example data: {'user_ref':u'0005', 'source_id':5}
+        """
+        # Pick out attribute values from request.
+        user_ref = params.get('user_ref')
+        source_id = params.get('source_id')
+        # Validate values.
+        opts_err = ''
+        if not user_ref:
+            opts_err = gettext('You must supply a user_ref.')
+        elif not source_id:
+            opts_err = gettext('You must supply a source_id.')
+        else:
+            source = model.HarvestSource.get(source_id, default=None)
+            if not source:
+                opts_err = gettext('Harvest source %s does not exist.') % source_id
+        if opts_err:
+            self.log.debug(opts_err)
+            response.status_int = 400
+            response.headers['Content-Type'] = self.content_type_json
+            return json.dumps(opts_err)
+        # Create job.
+        job = model.HarvestingJob(source_id=source_id, user_ref=user_ref)
+        model.Session.add(job)
+        model.Session.commit()
+        ret_dict = job.as_dict()
         return self._finish_ok(ret_dict)
 
     def _get_username(self):
@@ -582,28 +648,30 @@ class BaseRestController(BaseApiController):
         # If both args are None then just check the apikey corresponds
         # to a user.
         api_key = None
+        # Todo: Remove unused 'isOk' variable.
         isOk = False
 
         self.rest_api_user = self._get_username()
         log.debug('check access - user %r' % self.rest_api_user)
         
-        if action and entity and not isinstance(entity, model.PackageRelationship):
+        if action and entity and not isinstance(entity, model.PackageRelationship) \
+                and not isinstance(entity, model.HarvestingJob):
             if action != model.Action.READ and self.rest_api_user in (model.PSEUDO_USER__VISITOR, ''):
                 self.log.debug("Valid API key needed to make changes")
                 response.status_int = 403
-                response.headers['Content-Type'] = 'application/json'
+                response.headers['Content-Type'] = self.content_type_json
                 return False                
             
             am_authz = ckan.authz.Authorizer().is_authorized(self.rest_api_user, action, entity)
             if not am_authz:
                 self.log.debug("User is not authorized to %s %s" % (action, entity))
                 response.status_int = 403
-                response.headers['Content-Type'] = 'application/json'
+                response.headers['Content-Type'] = self.content_type_json
                 return False
         elif not self.rest_api_user:
             self.log.debug("No valid API key provided.")
             response.status_int = 403
-            response.headers['Content-Type'] = 'application/json'
+            response.headers['Content-Type'] = self.content_type_json
             return False
         self.log.debug("Access OK.")
         response.status_int = 200

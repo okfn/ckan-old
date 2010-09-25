@@ -17,11 +17,12 @@ from ckan.tests.functional.test_rest import Api1TestCase
 from ckan.tests.functional.test_rest import Api2TestCase
 from ckan.tests.functional.test_rest import ApiUnversionedTestCase
 
-class BaseFormsApiCase(ApiControllerTestCase):
+class BaseFormsApiCase(ModelMethods, ApiControllerTestCase):
 
     api_version = ''
     package_name = u'formsapi'
     package_name_alt = u'formsapialt'
+    package_name_alt2 = u'formsapialt2'
     apikey_header_name = config.get('apikey_header_name', 'X-CKAN-API-Key')
 
     def setup(self):
@@ -32,6 +33,7 @@ class BaseFormsApiCase(ApiControllerTestCase):
             self.apikey_header_name : str(self.user.apikey)
         }
         self.create_package(name=self.package_name)
+        self.harvest_source = None
 
     def teardown(self):
         #if self.user:
@@ -40,12 +42,27 @@ class BaseFormsApiCase(ApiControllerTestCase):
         #    self.user.purge()
         self.purge_package_by_name(self.package_name)
         self.purge_package_by_name(self.package_name_alt)
+        self.purge_package_by_name(self.package_name_alt2)
+        self.delete_harvest_source(u'http://localhost/')
+        if self.harvest_source:
+            self.delete_commit(self.harvest_source)
+
+    def delete_harvest_source(self, url):
+        source = self.get_harvest_source_by_url(url, None)
+        if source:
+            self.delete_commit(source)
 
     def offset_package_create_form(self):
         return self.offset('/form/package/create')
 
     def offset_package_edit_form(self, ref):
         return self.offset('/form/package/edit/%s' % ref)
+
+    def offset_harvest_source_create_form(self):
+        return self.offset('/form/harvestsource/create')
+
+    def offset_harvest_source_edit_form(self, ref):
+        return self.offset('/form/harvestsource/edit/%s' % ref)
 
     def get_package_create_form(self, status=[200]):
         offset = self.offset_package_create_form()
@@ -54,6 +71,16 @@ class BaseFormsApiCase(ApiControllerTestCase):
 
     def get_package_edit_form(self, package_ref, status=[200]):
         offset = self.offset_package_edit_form(package_ref)
+        res = self.get(offset, status=status)
+        return self.form_from_res(res)
+
+    def get_harvest_source_create_form(self, status=[200]):
+        offset = self.offset_harvest_source_create_form()
+        res = self.get(offset, status=status)
+        return self.form_from_res(res)
+
+    def get_harvest_source_edit_form(self, harvest_source_id, status=[200]):
+        offset = self.offset_harvest_source_edit_form(harvest_source_id)
         res = self.get(offset, status=status)
         return self.form_from_res(res)
 
@@ -78,6 +105,21 @@ class BaseFormsApiCase(ApiControllerTestCase):
         offset = self.offset_package_create_form()
         return self.post(offset, data, status=status)
 
+    def post_harvest_source_create_form(self, form=None, status=[201], **kwds):
+        if form == None:
+            form = self.get_harvest_source_create_form()
+        for key,field_value in kwds.items():
+            field_name = 'HarvestSource--%s' % key
+            form[field_name] = field_value
+        form_data = form.submit_fields()
+        data = {
+            'form_data': form_data,
+            'user_ref': 'example publisher user',
+            'publisher_ref': 'example publisher',
+        }
+        offset = self.offset_harvest_source_create_form()
+        return self.post(offset, data, status=status)
+
     def package_id_from_ref(self, package_ref):
         if self.ref_package_by == 'id':
             return package_ref
@@ -90,10 +132,10 @@ class BaseFormsApiCase(ApiControllerTestCase):
     def post_package_edit_form(self, package_ref, form=None, status=[200], **kwds):
         if form == None:
             form = self.get_package_edit_form(package_ref)
-        for key,value in kwds.items():
+        for key,field_value in kwds.items():
             package_id = self.package_id_from_ref(package_ref)
             field_name = 'Package-%s-%s' % (package_id, key)
-            form[field_name] = value
+            self.set_formfield(form, field_name, field_value)
         form_data = form.submit_fields()
         data = {
             'form_data': form_data,
@@ -103,6 +145,24 @@ class BaseFormsApiCase(ApiControllerTestCase):
         offset = self.offset_package_edit_form(package_ref)
         return self.post(offset, data, status=status)
         
+    def post_harvest_source_edit_form(self, harvest_source_id, form=None, status=[200], **kwds):
+        if form == None:
+            form = self.get_harvest_source_edit_form(harvest_source_id)
+        for key,field_value in kwds.items():
+            field_name = 'HarvestSource-%s-%s' % (harvest_source_id, key)
+            self.set_formfield(form, field_name, field_value)
+        form_data = form.submit_fields()
+        data = {
+            'form_data': form_data,
+            'user_ref': 'example publisher user',
+            'publisher_ref': 'example publisher',
+        }
+        offset = self.offset_harvest_source_edit_form(harvest_source_id)
+        return self.post(offset, data, status=status)
+        
+    def set_formfield(self, form, field_name, field_value):
+        form[field_name] = field_value
+
     def assert_not_header(self, res, name):
         headers = self.get_headers(res)
         assert not name in headers, "Found header '%s' in response: %s" % (name, res)
@@ -221,15 +281,16 @@ class FormsApiTestCase(BaseFormsApiCase):
             package_id = package.id
             res = self.get(url_for(controller='form', action='package_create_example', id=package_id))
             form = res.forms[0]
+            self.assert_formfield(form, 'Package--name', '')
+            self.set_formfield(form, 'Package--name', self.package_name_alt2)
             form_data = form.submit_fields()
-            # Todo: Uncomment before implementing 'create form submit'. 
-            #import urllib
-            #params = urllib.urlencode(form_data)
-            #offset = url_for(controller='form', action='package_create_example', id=package_id)
-            #res = self.app.post(offset, params=params, status=[200], extra_environ=self.extra_environ)
-            #body = res.body
-            #assert '<html' in body, "The result does NOT have an HTML doc tag: %s" % body
-            #assert "Submitted OK" in body, body
+            import urllib
+            params = urllib.urlencode(form_data)
+            offset = url_for(controller='form', action='package_create_example', id=package_id)
+            res = self.app.post(offset, params=params, status=[200], extra_environ=self.extra_environ)
+            body = res.body
+            assert '<html' in body, "The result does NOT have an HTML doc tag: %s" % body
+            assert "Submitted OK" in body, body
         finally:
             self._stop_ckan_server(self.ckan_server)
 
@@ -251,6 +312,75 @@ class FormsApiTestCase(BaseFormsApiCase):
             assert "Submitted OK" in body, body
         finally:
             self._stop_ckan_server(self.ckan_server)
+
+    def test_get_harvest_source_create_form(self):
+        form = self.get_harvest_source_create_form()
+        self.assert_formfield(form, 'HarvestSource--url', '')
+        self.assert_formfield(form, 'HarvestSource--description', '')
+
+    def test_submit_harvest_source_create_form_valid(self):
+        source_url = u'http://localhost/'
+        source_description = u'My harvest source.'
+        assert not self.get_harvest_source_by_url(source_url, None)
+        res = self.post_harvest_source_create_form(url=source_url, description=source_description)
+        self.assert_header(res, 'Location')
+        # Todo: Check the Location looks promising (extract and check given ID).
+        assert not json.loads(res.body)
+        source = self.get_harvest_source_by_url(source_url) # Todo: Use extracted ID.
+        self.assert_equal(source.user_ref, 'example publisher user')
+        self.assert_equal(source.publisher_ref, 'example publisher')
+
+    def test_submit_harvest_source_create_form_invalid(self):
+        source_url = u'' # Blank URL.
+        assert not self.get_harvest_source_by_url(source_url, None)
+        res = self.post_harvest_source_create_form(url=source_url, status=[400])
+        self.assert_not_header(res, 'Location')
+        assert "Url: Please enter a value" in res.body, res.body
+        assert not self.get_harvest_source_by_url(source_url, None)
+
+        source_url = u' ' # Not '^http://'
+        assert not self.get_harvest_source_by_url(source_url, None)
+        res = self.post_harvest_source_create_form(url=source_url, status=[400])
+        self.assert_not_header(res, 'Location')
+        assert "Url: Harvest source URL is invalid" in res.body, res.body
+        assert not self.get_harvest_source_by_url(source_url, None)
+
+    def test_get_harvest_source_edit_form(self):
+        source_url = u'http://'
+        source_description = u'An example harvest source.'
+        self.harvest_source = self.create_harvest_source(url=source_url, description=source_description)
+        form = self.get_harvest_source_edit_form(self.harvest_source.id)
+        self.assert_formfield(form, 'HarvestSource-%s-url' % self.harvest_source.id, source_url)
+        self.assert_formfield(form, 'HarvestSource-%s-description' % self.harvest_source.id, source_description)
+ 
+    def test_submit_harvest_source_edit_form_valid(self):
+        source_url = u'http://'
+        source_description = u'An example harvest source.'
+        alt_source_url = u'http://a'
+        alt_source_description = u'An old example harvest source.'
+        self.harvest_source = self.create_harvest_source(url=source_url, description=source_description)
+        assert self.get_harvest_source_by_url(source_url, None)
+        assert not self.get_harvest_source_by_url(alt_source_url, None)
+        res = self.post_harvest_source_edit_form(self.harvest_source.id, url=alt_source_url, description=alt_source_description)
+        self.assert_not_header(res, 'Location')
+        # Todo: Check the Location looks promising (extract and check given ID).
+        assert not json.loads(res.body)
+        assert not self.get_harvest_source_by_url(source_url, None)
+        source = self.get_harvest_source_by_url(alt_source_url) # Todo: Use extracted ID.
+        assert source
+        self.assert_equal(source.user_ref, 'example publisher user')
+        self.assert_equal(source.publisher_ref, 'example publisher')
+
+    def test_submit_harvest_source_edit_form_invalid(self):
+        source_url = u'http://'
+        source_description = u'An example harvest source.'
+        alt_source_url = u''
+        self.harvest_source = self.create_harvest_source(url=source_url, description=source_description)
+        assert self.get_harvest_source_by_url(source_url, None)
+        res = self.post_harvest_source_edit_form(self.harvest_source.id, url=alt_source_url, status=[400])
+        assert self.get_harvest_source_by_url(source_url, None)
+        self.assert_not_header(res, 'Location')
+        assert "Url: Please enter a value" in res.body, res.body
 
 
 class TestFormsApi1(Api1TestCase, FormsApiTestCase): pass

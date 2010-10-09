@@ -41,7 +41,7 @@ env.pip_requirements = 'pip-requirements.txt'
 env.skip_setup_db = False
 
 def config_local(base_dir, ckan_instance_name, db_host=None, db_pass=None, 
-                 skip_setup_db=None, no_sudo=None):
+                 skip_setup_db=None, no_sudo=None, pip_requirements=None):
     '''Run on localhost. e.g. local:~/test,myhost.com
                             puts it at ~/test/myhost.com
                             '''
@@ -55,7 +55,9 @@ def config_local(base_dir, ckan_instance_name, db_host=None, db_pass=None,
     if skip_setup_db != None:
         env.skip_setup_db = skip_setup_db    
     if no_sudo != None:
-        env.no_sudo = no_sudo    
+        env.no_sudo = no_sudo
+    if pip_requirements:
+        env.pip_requirements = pip_requirements
 
 def config_local_dev(base_dir, ckan_instance_name):
     config_local(base_dir, ckan_instance_name)
@@ -277,7 +279,7 @@ def status():
     'Provides version number info'
     _setup()
     with cd(env.instance_path):
-        run('pip freeze')
+        _run_in_cmd_pyenv('pip freeze')
         run('cat %s' % env.config_ini_filename)
     with cd(os.path.join(env.pyenv_dir, 'src', 'ckan')):
         run('hg log -l 1')
@@ -483,16 +485,18 @@ def _get_db_config():
     db_details = re.match('^\s*(?P<db_type>\w*)://(?P<db_user>\w*):(?P<db_pass>[^@]*)@(?P<db_host>[\w\.]*)/(?P<db_name>[\w.-]*)', url).groupdict()
     return db_details
 
+def _get_ckan_pyenv_dict():
+    return {'here':os.path.join(env.pyenv_dir, 'src', 'ckan')}
+
 def _get_pylons_cache_dir():
     cache_dir = _get_ini_value('cache_dir')
     # e.g. '%(here)s/data'
-    return cache_dir % {'here':env.instance_path}
+    return cache_dir % _get_ckan_pyenv_dict()
 
 def _get_open_id_store_dir():
     store_file_path = _get_ini_value('store_file_path', env.who_ini_filepath)
     # e.g. '%(here)s/sstore'
-    return store_file_path % {'here':env.instance_path}
-    
+    return store_file_path % _get_ckan_pyenv_dict()
 
 def _create_live_data_dir(readable_name, dir):
     if not exists(dir):

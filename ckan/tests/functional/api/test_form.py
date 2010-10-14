@@ -187,8 +187,19 @@ class BaseFormsApiCase(ModelMethods, ApiControllerTestCase):
 
 class FormsApiTestCase(BaseFormsApiCase):
 
-    def assert_formfield(self, form, name, value):
-        self.assert_equal(form[name].value, value)
+    def get_field_names(self, form):
+        return form.fields.keys()
+
+    def assert_formfield(self, form, name, expected):
+        try:
+            field = form[name]
+        except Exception, inst:
+            msg = "Couldn't read field '%s' from form fields: %s: %s" % (
+                name, self.get_field_names(form), inst
+            )
+            raise Exception, msg
+        value = field.value
+        self.assert_equal(value, expected)
 
     def test_get_package_create_form(self):
         form = self.get_package_create_form()

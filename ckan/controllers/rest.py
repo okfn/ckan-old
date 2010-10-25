@@ -240,7 +240,7 @@ class BaseRestController(BaseApiController):
         try:
             if register == 'package' and not subregister:
                 # Create a Package.
-                fs = ckan.forms.get_standard_fieldset()
+                fs = self._get_standard_package_fieldset()
                 try:
                     request_fa_dict = ckan.forms.edit_package_dict(ckan.forms.get_package_dict(fs=fs), request_data)
                 except ckan.forms.PackageDictFormatError, inst:
@@ -311,7 +311,10 @@ class BaseRestController(BaseApiController):
         except Exception, inst:
             log.exception(inst)
             model.Session.rollback()
-            log.error('Exception creating object %s: %r' % (str(fs.name.value), inst))
+            if 'fs' in dir():
+                log.error('Exception creating object %s: %r' % (str(fs.name.value), inst))
+            else:
+                log.error('Exception creating object fieldset for register %r: %r' % (register, inst))                
             raise
         log.debug('Created object %s' % str(fs.name.value))
         obj = fs.model
@@ -369,7 +372,7 @@ class BaseRestController(BaseApiController):
 
         if not subregister:
             if register == 'package':
-                fs = ckan.forms.get_standard_fieldset()
+                fs = self._get_standard_package_fieldset()
                 orig_entity_dict = ckan.forms.get_package_dict(pkg=entity, fs=fs)
                 try:
                     request_fa_dict = ckan.forms.edit_package_dict(orig_entity_dict, request_data, id=entity.id)

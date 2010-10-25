@@ -19,7 +19,7 @@ def prettify(field_name):
     field_name = re.sub('(?<!\w)[Uu]rl(?!\w)', 'URL', field_name.replace('_', ' ').capitalize())
     return _(field_name.replace('_', ' '))
 
-def build_package_form(is_admin=False):
+def build_package_form(is_admin=False, **params):
     builder = FormBuilder(model.Package)
 
     # Extra fields
@@ -61,7 +61,7 @@ def build_package_form(is_admin=False):
      _('Notes'), _('Resources'), _('Author'), _('Author email'), _('Maintainer'),
      _('Maintainer email'), _('License'), _('Tags'), _('Extras'), _('State')]
 
-def get_standard_fieldset(is_admin=False):
+def get_standard_fieldset(is_admin=False, **kwargs):
     '''Returns the package fieldset (optionally with admin fields)'''
 
     return build_package_form(is_admin=is_admin).get_fieldset()

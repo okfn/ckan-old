@@ -7,6 +7,7 @@ from domain_object import DomainObject
 from package import *
 from types import make_uuid
 import vdm.sqlalchemy
+from ckan.model import extension
 
 __all__ = ['group_table', 'Group', 'package_revision_table',
            'PackageGroup', 'GroupRevision', 'PackageGroupRevision']

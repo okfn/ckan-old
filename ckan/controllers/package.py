@@ -1,6 +1,6 @@
 import logging
 import urlparse
-import urllib
+from urllib import urlencode
 
 from sqlalchemy.orm import eagerload_all
 from sqlalchemy import or_
@@ -12,7 +12,7 @@ from ckan.lib.base import *
 from ckan.lib.search import query_for, QueryOptions, SearchError
 from ckan.lib.cache import proxy_cache
 from ckan.lib.package_saver import PackageSaver, ValidationException
-from ckan.plugins import ExtensionPoint, IPackageController
+from ckan.plugins import PluginImplementations, IPackageController
 import ckan.forms
 import ckan.authz
 import ckan.rating
@@ -22,7 +22,7 @@ logger = logging.getLogger('ckan.controllers')
 
 class PackageController(BaseController):
     authorizer = ckan.authz.Authorizer()
-    extensions = ExtensionPoint(IPackageController)
+    extensions = PluginImplementations(IPackageController)
 
     def search(self):        
         q = c.q = request.params.get('q') # unicode format (decoded from utf8)
@@ -37,11 +37,12 @@ class PackageController(BaseController):
 
         def drill_down_url(**by):
             url = h.url_for(controller='package', action='search')
-            param = request.params.items()
+            param = [(k, v.encode('utf-8')) for k, v in request.params.items()]
             for k, v in by.items():
+                v = v.encode('utf-8')
                 if not (k, v) in param:
-                    param.append((k, v.encode('utf-8')))
-            return url + '?' + urllib.urlencode(param)
+                    param.append((k, v))
+            return url + u'?' + urlencode(param)
         
         c.drill_down_url = drill_down_url 
         
@@ -49,7 +50,7 @@ class PackageController(BaseController):
             url = h.url_for(controller='package', action='search')
             param = request.params.items()
             param.remove((key, value))
-            return url + '?' + urllib.urlencode(
+            return url + u'?' + urlencode(
                 [(k, v.encode('utf-8')) for k, v in param])
         
         c.remove_field = remove_field
@@ -361,8 +362,8 @@ class PackageController(BaseController):
             abort(401, str(gettext('User %r not authorized to edit %s authorizations') % (c.user, id)))
 
         if 'save' in request.params: # form posted
-            # needed because request is nested
-            # multidict which is read only
+            # A dict needed for the params because request.params is a nested
+            # multidict, which is read only.
             params = dict(request.params)
             c.fs = ckan.forms.get_authz_fieldset('package_authz_fs').bind(pkg.roles, data=params or None)
             try:

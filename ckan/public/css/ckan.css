@@ -442,8 +442,23 @@ caption {
     padding-top:0.5em;
     color:#888;
     padding-left:0.8em;
+
+/* ===========================
+ * Misc
+ */
+
+p.atom-feed-link {
+  float: right;
+  display: inline;
+  font-size: 14px;
+
 }
 
+p.atom-feed-link a {
+  background: url('../images/icons/atom_feed.png') no-repeat;
+  padding-left: 20px
+  
+}
 
 
 /* ============= */
@@ -456,7 +471,6 @@ caption {
 	height: 0;
 	clear: both;
 	visibility: hidden;
-}
 
 .clearfix { display: inline-block; } /* for IE/Mac */
 

@@ -10,12 +10,12 @@ class TestHomeController(TestController):
     def test_packages_link(self):
         offset = url_for('home')
         res = self.app.get(offset)
-        res.click('Packages', index=0)
+        res.click('Search', index=0)
         
     def test_tags_link(self):
         offset = url_for('home')
         res = self.app.get(offset)
-        res.click('Tags')
+        res.click('Tags', index=0)
         
     def test_404(self):
         offset = '/some_nonexistent_url'
@@ -36,8 +36,13 @@ class TestHomeController(TestController):
         form = res.forms['package-search']
         form['q'] =  'anna'
         results_page = form.submit()
-        assert 'Search - Data Packages' in results_page, results_page
+        assert 'Search - ' in results_page, results_page
         assert '>0<' in results_page, results_page
+    
+    def test_template_footer_end(self):
+        offset = url_for('home')
+        res = self.app.get(offset)
+        assert '<strong>TEST TEMPLATE_FOOTER_END TEST</strong>'
 
     # DISABLED because this is not on home page anymore
     def _test_register_new_package(self):

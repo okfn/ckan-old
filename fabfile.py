@@ -164,7 +164,7 @@ def config_0(name,
              requirements='pip-requirements-metastable.txt',
              db_pass='',
              db_host='localhost',
-             user=None,
+             user=None
         ):
     '''Configurable configuration: fab -d gives full info.
     
@@ -175,6 +175,7 @@ def config_0(name,
         pip-requirements-metastable.txt)
     @param db_pass: password to use when setting up db user (if needed)
     @param db_host: db host to use when setting up db (if needed)
+    @param user: user to log into host as, if not current user
     '''
     env.user = user or os.environ['USER']
     if hosts_str:
@@ -393,7 +394,8 @@ def backup():
         assert exists(env.config_ini_filename), "Can't find config file: %s/%s" % (env.instance_path, env.config_ini_filename)
     db_details = _get_db_config()
     assert db_details['db_type'] == 'postgres'
-    run('export PGPASSWORD=%s&&pg_dump -U %s -h %s %s > %s' % (db_details['db_pass'], db_details['db_user'], db_details['db_host'], db_details['db_name'], pg_dump_filepath), shell=False)
+    port_option = '-p %s' % db_details['db_port'] if db_details['db_port'] else ''
+    run('export PGPASSWORD=%s&&pg_dump -U %s -h %s %s %s > %s' % (db_details['db_pass'], db_details['db_user'], db_details['db_host'], port_option, db_details['db_name'], pg_dump_filepath), shell=False)
     assert exists(pg_dump_filepath)
     run('ls -l %s' % pg_dump_filepath)
     # copy backup locally
@@ -440,7 +442,8 @@ def restore(pg_dump_filepath):
     with cd(env.instance_path):
         _run_in_pyenv('paster --plugin ckan db clean --config %s' % env.config_ini_filename)
     assert db_details['db_type'] == 'postgres'
-    run('export PGPASSWORD=%s&&psql -U %s -d %s -h %s -f %s' % (db_details['db_pass'], db_details['db_user'], db_details['db_name'], db_details['db_host'], pg_dump_filepath), shell=False)
+    port_option = '-p %s'  % db_details['db_port'] if db_details['db_port'] else ''
+    run('export PGPASSWORD=%s&&psql -U %s -d %s -h %s %s -f %s' % (db_details['db_pass'], db_details['db_user'], db_details['db_name'], db_details['db_host'], port_option, pg_dump_filepath), shell=False)
     with cd(env.instance_path):
         _run_in_pyenv('paster --plugin ckan db upgrade --config %s' % env.config_ini_filename)
         _run_in_pyenv('paster --plugin ckan db init --config %s' % env.config_ini_filename)
@@ -584,7 +587,10 @@ def _get_ini_value(key, ini_filepath=None):
 def _get_db_config():
     url = _get_ini_value('sqlalchemy.url')
     # e.g. 'postgres://tester:pass@localhost/ckantest3'
-    db_details = re.match('^\s*(?P<db_type>\w*)://(?P<db_user>\w*):(?P<db_pass>[^@]*)@(?P<db_host>[\w\.]*)/(?P<db_name>[\w.-]*)', url).groupdict()
+    db_details_match = re.match('^\s*(?P<db_type>\w*)://(?P<db_user>\w*):?(?P<db_pass>[^@]*)@(?P<db_host>[^/:]*):?(?P<db_port>[^/]*)/(?P<db_name>[\w.-]*)', url)
+    if not db_details_match:
+        raise Exception('Could not extract db details from url: %r' % url)
+    db_details = db_details_match.groupdict()
     return db_details
 
 def _get_ckan_pyenv_dict():

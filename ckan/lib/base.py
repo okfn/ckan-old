@@ -32,6 +32,8 @@ PAGINATE_ITEMS_PER_PAGE = 50
 APIKEY_HEADER_NAME_KEY = 'apikey_header_name'
 APIKEY_HEADER_NAME_DEFAULT = 'X-CKAN-API-Key'
 
+ALLOWED_FIELDSET_PARAMS = ['package_form', 'restrict']
+
 
 def render(template_name, extra_vars=None, cache_key=None, cache_type=None, 
            cache_expire=None, method='xhtml', loader_class=MarkupTemplate):
@@ -132,6 +134,8 @@ class BaseController(WSGIController):
         return request_data
         
     def _make_unicode(self, entity):
+        """Cast bare strings and strings in lists or dicts to Unicode
+        """
         if isinstance(entity, str):
             return unicode(entity)
         elif isinstance(entity, list):

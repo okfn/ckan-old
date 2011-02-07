@@ -61,6 +61,7 @@ class Repository(vdm.sqlalchemy.Repository):
             logged_in = User(name=PSEUDO_USER__LOGGED_IN)
             Session.add(visitor)
             Session.add(logged_in)
+        Session.flush() # so that the users objects can be used next
         validate_authorization_setup()
         if Session.query(Revision).count() == 0:
             rev = Revision()
@@ -76,7 +77,8 @@ class Repository(vdm.sqlalchemy.Repository):
         # 2009-09-11 interesting all the tests will work if you run them after
         # doing paster db clean && paster db upgrade !
         # self.upgrade_db()
-        self.setup_migration_version_control(self.latest_migration_version())
+        if not asbool(config.get('faster_db_test_hacks')):
+            self.setup_migration_version_control(self.latest_migration_version())
         self.create_indexes()
 
     def latest_migration_version(self):
@@ -85,7 +87,7 @@ class Repository(vdm.sqlalchemy.Repository):
         return version
 
     def clean_db(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
+        if asbool(config.get('faster_db_test_hacks')):
             self.delete_all()
         else:
             super(Repository, self).clean_db()
@@ -109,21 +111,23 @@ class Repository(vdm.sqlalchemy.Repository):
         import migrate.versioning.api as mig
         # set up db version control (if not already)
         try:
-            mig.version_control(str(self.metadata.bind.url),
+            mig.version_control(self.metadata.bind,
                     self.migrate_repository, version)
         except migrate.versioning.exceptions.DatabaseAlreadyControlledError:
             pass
 
     def create_indexes(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
+        if asbool(config.get('faster_db_test_hacks')):
             return
+        assert meta.engine.name in ('postgres', 'postgresql'), \
+            'Only postgresql engine supported (not %s).' % meta.engine.name
         import os
         from migrate.versioning.script import SqlScript
         from sqlalchemy.exceptions import ProgrammingError
         try:
             path = os.path.join(self.migrate_repository,
                                 'versions',
-                                '021_postgres_upgrade.sql')
+                                '021_postgresql_upgrade.sql')
             script = SqlScript(path)
             script.run(meta.engine, step=None)
         except ProgrammingError, e:
@@ -137,7 +141,7 @@ class Repository(vdm.sqlalchemy.Repository):
         '''
         import migrate.versioning.api as mig
         self.setup_migration_version_control()
-        mig.upgrade(str(self.metadata.bind.url), self.migrate_repository, version=version)
+        mig.upgrade(self.metadata.bind.url, self.migrate_repository, version=version)
         validate_authorization_setup()
 
 

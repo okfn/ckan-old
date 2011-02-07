@@ -10,6 +10,7 @@ from webhelpers.html.tools import mail_to
 from webhelpers.html.tags import *
 from webhelpers.markdown import markdown
 from webhelpers import paginate
+from webhelpers.pylonslib import Flash as _Flash
 from webhelpers.text import truncate
 from pylons.decorators.cache import beaker_cache
 from routes import url_for, redirect_to
@@ -25,6 +26,18 @@ try:
     import json
 except ImportError:
     import simplejson as json
+
+
+_flash = _Flash()
+
+def flash_notice(message): 
+    _flash(message, category='notice')
+
+def flash_error(message): 
+    _flash(message, category='error')
+
+def flash_success(message): 
+    _flash(message, category='success')
 
 # FIXME: shouldn't have to pass the c object in to this.
 def nav_link(c, text, controller, **kwargs):
@@ -75,13 +88,15 @@ def linked_user(user):
     if user in [model.PSEUDO_USER__LOGGED_IN, model.PSEUDO_USER__VISITOR]:
         return user
     if not isinstance(user, model.User):
-        user = model.User.get(unicode(user))
+        user_name = unicode(user)
+        user = model.User.get(user_name)
+        if not user:
+            return user_name
     if user:
         _name = user.name if model.User.VALID_NAME.match(user.name) else user.id
         _icon = icon("user") + " "
         return _icon + link_to(user.display_name, 
                        url_for(controller='user', action='read', id=_name))
-    return user
 
 def group_name_to_title(name):
     from ckan import model

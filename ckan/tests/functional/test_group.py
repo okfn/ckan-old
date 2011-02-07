@@ -4,6 +4,7 @@ from base import FunctionalTestCase
 
 from ckan.plugins import SingletonPlugin, implements, IGroupController
 from ckan import plugins
+from ckan.tests import search_related
 
 class MockGroupControllerPlugin(SingletonPlugin):
     implements(IGroupController)
@@ -39,8 +40,9 @@ class TestGroup(FunctionalTestCase):
 
     @classmethod
     def teardown_class(self):
-        CreateTestData.delete()
+        model.repo.clean_db()
 
+    @search_related
     def test_mainmenu(self):
         offset = url_for(controller='home', action='index')
         res = self.app.get(offset)

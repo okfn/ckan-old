@@ -21,28 +21,24 @@ setup(
     install_requires=[
         'routes>=1.9,<=1.11.99',
         'vdm>=0.9,<0.9.99',
-        'ckanclient>=0.1,<0.5.99',
+        'ckanclient>=0.1,<0.6.99',
         'Pylons>=0.9.7.0,<0.9.7.99',
-        'Genshi>=0.6',
-        'SQLAlchemy>=0.4.8',
+        'Genshi>=0.6,<0.6.99',
+        'SQLAlchemy>=0.6,<0.6.99',
         'repoze.who>=1.0.0,<1.0.99',
         'repoze.who.plugins.openid>=0.5.3',
-        'pyutilib.component.core>=4.1',
+        'repoze.who-friendlyform>=1.0.8',
+        'pyutilib.component.core>=4.1,<4.1.99',
         # uuid in python >= 2.5
         # 'uuid>=1.0',
         # for open licenses
         'licenses==0.4,<0.6.99',
-        # last version to work with sqlalchemy < 0.5 
-        'sqlalchemy-migrate==0.4.5',
+        'sqlalchemy-migrate==0.6',
         # latest version of Routes (1.10) depends on webob in middleware but
         # does not declare the dependency!
         # (not sure we need this except in tests but ...)
         'WebOb',
         'FormAlchemy>=1.3.4',
-        'carrot>=0.10.5',
-        'blinker>=1.0',
-        'xlrd>=0.7.1',
-        'xlwt>=0.7.2',
         ## required for harvesting
         ## TODO: this could be removed if harvesting moved to worker
         'lxml',
@@ -74,7 +70,6 @@ setup(
 
     [paste.paster_command]
     db = ckan.lib.cli:ManageDb
-    load = ckan.lib.cli:Load
     create-test-data = ckan.lib.create_test_data:CreateTestData
     sysadmin = ckan.lib.cli:Sysadmin
     search-index = ckan.lib.cli:SearchIndexCommand

@@ -53,8 +53,11 @@ class Tag(DomainObject):
 
     @property
     def packages_ordered(self):
+        ## make sure packages are active
+        packages = [package for package in self.packages 
+                    if package.state == State.ACTIVE]
         ourcmp = lambda pkg1, pkg2: cmp(pkg1.name, pkg2.name)
-        return sorted(self.packages, cmp=ourcmp)
+        return sorted(packages, cmp=ourcmp)
 
     def __repr__(self):
         return '<Tag %s>' % self.name
@@ -71,8 +74,15 @@ class PackageTag(vdm.sqlalchemy.RevisionedObjectMixin,
             setattr(self, k, v)
 
     def __repr__(self):
-        return '<PackageTag %s %s>' % (self.package, self.tag)
+        return '<PackageTag package=%s tag=%s>' % (self.package.name, self.tag.name)
 
+    @classmethod
+    def by_name(self, package_name, tag_name, autoflush=True):
+        q = Session.query(self).autoflush(autoflush).\
+            join('package').filter(Package.name==package_name).\
+            join('tag').filter(Tag.name==tag_name)
+        assert q.count() <= 1, q.all()
+        return q.first()
 
 mapper(Tag, tag_table, properties={
     'package_tags':relation(PackageTag, backref='tag',

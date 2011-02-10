@@ -10,7 +10,8 @@ import os
 from paste.deploy.converters import asbool
 from pylons import c, cache, config, g, request, response, session
 from pylons.controllers import WSGIController
-from pylons.controllers.util import abort, etag_cache, redirect_to, redirect
+from pylons.controllers.util import abort as _abort
+from pylons.controllers.util import etag_cache, redirect_to, redirect
 from pylons.decorators import jsonify, validate
 from pylons.i18n import _, ungettext, N_, gettext
 from pylons.templating import cached_template, pylons_globals
@@ -34,6 +35,13 @@ APIKEY_HEADER_NAME_DEFAULT = 'X-CKAN-API-Key'
 
 ALLOWED_FIELDSET_PARAMS = ['package_form', 'restrict']
 
+def abort(status_code=None, detail='', headers=None, comment=None):
+    if detail:
+        h.flash_error(detail)
+    return _abort(status_code=status_code, 
+                  detail=detail, 
+                  headers=headers, 
+                  comment=comment)
 
 def render(template_name, extra_vars=None, cache_key=None, cache_type=None, 
            cache_expire=None, method='xhtml', loader_class=MarkupTemplate):
@@ -134,6 +142,8 @@ class BaseController(WSGIController):
         return request_data
         
     def _make_unicode(self, entity):
+        """Cast bare strings and strings in lists or dicts to Unicode
+        """
         if isinstance(entity, str):
             return unicode(entity)
         elif isinstance(entity, list):
@@ -188,13 +198,14 @@ class BaseController(WSGIController):
 
         return path
 
-    def _get_user_editable_groups(self): 
+    @classmethod
+    def _get_user_editable_groups(cls): 
         if not hasattr(c, 'user'):
             c.user = model.PSEUDO_USER__VISITOR
         import ckan.authz # Todo: Move import to top of this file?
         groups = ckan.authz.Authorizer.authorized_query(c.user, model.Group, 
             action=model.Action.EDIT).all()
-        return groups
+        return [g for g in groups if g.state==model.State.ACTIVE] 
 
     def _get_package_dict(self, *args, **kwds):
         import ckan.forms
@@ -209,12 +220,10 @@ class BaseController(WSGIController):
         import ckan.forms
         return ckan.forms.edit_package_dict(*args, **kwds)
 
-    def _get_package_fieldset(self, is_admin=False):
-        kwds= {}
-        for key in request.params:
-            if key in ALLOWED_FIELDSET_PARAMS:
-                kwds[key] = request.params[key]
-        kwds['user_editable_groups'] = self._get_user_editable_groups()
+    @classmethod
+    def _get_package_fieldset(cls, is_admin=False, **kwds):
+        kwds.update(request.params)
+        kwds['user_editable_groups'] = cls._get_user_editable_groups()
         kwds['is_admin'] = is_admin
         from ckan.forms import GetPackageFieldset
         return GetPackageFieldset(**kwds).fieldset

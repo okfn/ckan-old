@@ -22,7 +22,6 @@ a:visited {
   text-decoration: none;
 }
 #main a:visited {
-  color: #95332c;
   text-decoration: none;
 }
 
@@ -36,6 +35,42 @@ a:hover {
 
 #content p, #content ul, #content ol, #content dd, #content pre, #content hr, #content dl {
   margin-bottom: 14px;
+}
+
+/* ===========================
+ * Flash messages
+*/
+
+.flash-banner-box {
+  margin-top: -20px;
+  margin-bottom: 10px;
+}
+
+.flash-banner {
+  width: auto;
+  font-size: 1.1em;
+  padding: 0.6em;
+  font-weight: bold;
+  text-align: center;
+  border-bottom: 2px solid #333;
+  color: #133362;
+}
+
+.flash-banner.notice {
+  background-color: #dde7ef;
+  border-bottom-color: #dddddd;
+}
+
+.flash-banner.success {
+  background-color: #e7f9e0;
+  border-bottom-color: #ccc;
+  color: #2d6b00;
+}
+
+.flash-banner.error {
+  background-color: #ffeae8;
+  border-bottom-color: #ccc;
+  color: #b50000;
 }
 
 /* ===========================
@@ -53,7 +88,7 @@ a:hover {
   float: left;
   font-size: 40px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 5px 0;
   font-weight: normal;
   letter-spacing: -0.032em;
 }
@@ -74,21 +109,22 @@ a:hover {
   display: block;
   border: none;
   margin: 0;
+  max-height: 50px;
 }
 
 #site-description {
   width:auto;
   float: left;
   clear: left;
-  color: #888;
-  font-style: italic;
-  font-size: 15px;
+  color: #000;
+  font-style: normal;
+  font-size: 13px;
   letter-spacing: normal;
   text-transform: none;
-  margin: 0;
-  margin-top: 5px;
-  padding: 0 0 0 50px;
-  font-family: Georgia, serif;
+  margin: -5px 0 10px 3px;
+  padding: 0;
+  font-family: 'Lucida Grande', 'Lucida Sans Unicode', Lucida, Arial, Helvetica, sans-serif;
+  font-family: 'Helvetica Neue', Arial, Helvetica, 'Nimbus Sans L', sans-serif;
 }
 
 /* ===========================
@@ -111,19 +147,24 @@ a:hover {
   width: 120px;
 }
 
+#top-bar-login .ckan-logged-in img {
+  margin-bottom: -3px;
+}
+
 
 /* =Menu
 -------------------------------------------------------------- */
 
 #access {
-  border-top: 1px dotted #AAA;
-  border-bottom: 1px dotted #AAA;
-	background: transparent;
+  border-top: 1px solid #aaa; 
+  border-bottom: 1px solid #aaa; 
+  background: transparent;
 }
 
 #access ul li a {
-	color: #A95A5A;
+  color: #b22;
   text-decoration: none;
+  font-weight: bold;
 }
 
 #access ul li a.active {
@@ -172,46 +213,6 @@ a:hover {
 
 .entry-content {
   padding-top: 0;
-}
-
-#minornavigation {
-  margin: 0;
-  padding: 0 15px 0 0;
-}
-
-#minornavigation ul {
-  margin: -5px 0 10px 0;
-  text-align:right;
-}
-
-#minornavigation ul li {
-  display: inline;
-  margin-right: 5px;
-}
-
-#minornavigation ul li a {
-  padding: 8px 5px 5px 3px;
-  background: #eee;
-	border: 1px solid #aaa;
-	border-left: none;
-	border-top: none;
-	border-radius: 0.5em;
-	-moz-border-radius: 0.5em;
-	-webkit-border-radius: 0.5em;
-}
-
-#minornavigation ul li a img {
-  margin: 0 0 0 0;
-  margin-right: 3px;
-  padding: 0;
-  position:relative;
-  top:3px;
-  left:2px;
-}
-
-#minornavigation ul li a:hover {
-  text-decoration: none;
-  background: transparent;
 }
 
 /* ===========================
@@ -415,6 +416,21 @@ form #log_message {
   margin-bottom: 12px;
 }
 
+form.simple-form label {
+    display: inline-block; 
+    float: left;
+    min-width: 40%;
+}
+
+form.simple-form fieldset input {
+    border: 1px solid #E7E7E7;
+    padding: 0.3em; 
+    width: 40%;
+}
+
+form.simple-form textarea {
+    width: 99%;
+}
 
 /* ===========================
  * Tables
@@ -785,11 +801,6 @@ ul.package_formats li {
   display: inline;
 }
 
-.package-atom-feed {
-  float: right;
-  display: none;
-}
-
 #content .package .subsection h3,
 #content #comments h3, #content #comments h4 {
   background-color: #444;
@@ -900,4 +911,8 @@ p.atom-feed-link {
 p.atom-feed-link a {
   background: url('../images/icons/atom_feed.png') no-repeat;
   padding-left: 20px;
+}
+
+p.atom-feed-link.package-history-link {
+  float: none;
 }

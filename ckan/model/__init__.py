@@ -1,6 +1,7 @@
 from pylons import config
 from sqlalchemy import MetaData, __version__ as sqav
 from sqlalchemy.schema import Index
+from paste.deploy.converters import asbool
 
 import meta
 from domain_object import DomainObjectOperation
@@ -44,10 +45,12 @@ class Repository(vdm.sqlalchemy.Repository):
 
     inited = False
 
-    def init_db(self, conditional=False):
-        # sqlite database needs to be recreated each time as the memory database
-        # is lost.
+    def init_db(self):
+        # sqlite database needs to be recreated each time as the
+        # memory database is lost.
         if not self.inited or self.metadata.bind.name == 'sqlite':
+            # this creates the tables, which isn't required inbetween tests
+            # that have simply called rebuild_db.
             super(Repository, self).init_db()
 
         self.session.rollback()
@@ -61,6 +64,7 @@ class Repository(vdm.sqlalchemy.Repository):
             logged_in = User(name=PSEUDO_USER__LOGGED_IN)
             Session.add(visitor)
             Session.add(logged_in)
+        Session.flush() # so that these objects can be used
         validate_authorization_setup()
         if Session.query(Revision).count() == 0:
             rev = Revision()
@@ -76,22 +80,29 @@ class Repository(vdm.sqlalchemy.Repository):
         # 2009-09-11 interesting all the tests will work if you run them after
         # doing paster db clean && paster db upgrade !
         # self.upgrade_db()
-        self.setup_migration_version_control(self.latest_migration_version())
-        self.create_indexes()
+        if self.metadata.bind.name != 'sqlite':
+            self.setup_migration_version_control(self.latest_migration_version())
+            self.create_indexes()
 
     def latest_migration_version(self):
         import migrate.versioning.api as mig
         version = mig.version(self.migrate_repository)
         return version
 
-    def clean_db(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
+    def rebuild_db(self):
+        '''Clean and init the db'''
+        if asbool(config.get('faster_db_test_hacks')):
+            # just delete data, leaving tables - this is faster
             self.delete_all()
         else:
-            super(Repository, self).clean_db()
+            # delete tables and data
+            self.clean_db()
+        self.session.remove()
+        self.init_db()
         self.session.flush()
-
+        
     def delete_all(self):
+        '''Delete all data from all tables.'''
         self.session.remove()
         ## use raw connection for performance
         connection = self.session.connection()
@@ -102,28 +113,27 @@ class Repository(vdm.sqlalchemy.Repository):
         for table in tables:
             connection.execute('delete from "%s"' % table.name)
         self.session.commit()
-        self.add_initial_data()
 
     def setup_migration_version_control(self, version=None):
         import migrate.versioning.exceptions
         import migrate.versioning.api as mig
         # set up db version control (if not already)
         try:
-            mig.version_control(self.metadata.bind.url,
+            mig.version_control(self.metadata.bind,
                     self.migrate_repository, version)
         except migrate.versioning.exceptions.DatabaseAlreadyControlledError:
             pass
 
     def create_indexes(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
-            return
+        assert meta.engine.name in ('postgres', 'postgresql'), \
+            'Only postgresql engine supported (not %s).' % meta.engine.name
         import os
         from migrate.versioning.script import SqlScript
         from sqlalchemy.exceptions import ProgrammingError
         try:
             path = os.path.join(self.migrate_repository,
                                 'versions',
-                                '021_postgres_upgrade.sql')
+                                '021_postgresql_upgrade.sql')
             script = SqlScript(path)
             script.run(meta.engine, step=None)
         except ProgrammingError, e:

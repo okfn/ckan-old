@@ -132,12 +132,9 @@ class CreateTestData(cli.CkanCommand):
                     elif attr == 'resources':
                         assert isinstance(val, (list, tuple))
                         for res_dict in val:
-                            pkg.add_resource(
-                                url=unicode(res_dict['url']),
-                                format=unicode(res_dict.get('format')),
-                                description=unicode(res_dict.get('description')),
-                                hash=unicode(res_dict.get('hash')),
-                                )
+                            non_extras = dict([(unicode(k), unicode(v)) for k, v in res_dict.items() if k != 'extras'])
+                            extras = dict([(unicode(k), unicode(v)) for k, v in res_dict.get('extras', {}).items()])
+                            pkg.add_resource(extras=extras, **non_extras)
                     elif attr == 'tags':
                         if isinstance(val, (str, unicode)):
                             tags = val.split()
@@ -308,12 +305,16 @@ class CreateTestData(cli.CkanCommand):
             format=u'plain text',
             description=u'Full text. Needs escaping: " Umlaut: \xfc',
             hash=u'abc123',
+            alt_url=u'alt123',
+            extras={'size': u'123'},
             )
         pr2 = model.PackageResource(
             url=u'http://www.annakarenina.com/index.json',
             format=u'json',
             description=u'Index of the novel',
             hash=u'def456',
+            alt_url=u'alt345',
+            extras={'size': u'345'},
             )
         model.Session.add(pr1)
         model.Session.add(pr2)

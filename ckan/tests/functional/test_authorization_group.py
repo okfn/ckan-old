@@ -4,6 +4,7 @@ from ckan.tests import *
 from ckan.authz import Authorizer
 import ckan.model as model
 from base import FunctionalTestCase
+from ckan.tests import search_related
 
 class TestAuthorizationGroup(FunctionalTestCase):
 
@@ -24,9 +25,10 @@ class TestAuthorizationGroup(FunctionalTestCase):
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.clean_db()
+        model.repo.rebuild_db()
         model.Session.remove()
 
+    @search_related
     def test_mainmenu(self):
         offset = url_for(controller='home', action='index')
         res = self.app.get(offset)

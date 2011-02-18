@@ -176,7 +176,7 @@ tests. See: http://buildbot.okfn.org/waterfall
 
   ::
   
-      sqlalchemy.url = postgres://ckantest:pass@localhost/ckantest
+      sqlalchemy.url = postgresql://ckantest:pass@localhost/ckantest
 
   Other configuration, such as setting the language of the site or editing the
   visual theme are described in :doc:`configuration` (doc/configuration.rst)  
@@ -258,26 +258,30 @@ Now start the tests:
 ::
 
     cd pyenv/src/ckan
-    nosetests ckan/tests
-
-The test suite takes a long time to run against standard PostgreSQL (approx. 15 minutes, or close to an hour on Ubuntu/10.04 Lucid).  
-
-This can be improved to between 5 and 15 minutes by turning off durability as described at <http://www.postgresql.org/docs/9.0/static/non-durability.html>. 
-
-However if you test against an in-memory SQLite database, this can drop to as low as 2 minutes.  To do this, change the sqlalchemy.url line in your development.ini:
-
-::
-
-  sqlalchemy.url = sqlite:///
+    nosetests ckan/tests --ckan
 
 .. caution ::
 
-   Note that when running against SQLite: (a) some search-related 
-   tests are currently skipped due
-   to PostgreSQL-specific code; and (b) only PostgreSQL is currently
-   supported in production anyway.  Therefore, you should treat the
-   SQLite support as a convenience during development, and always run
-   the tests against PostgreSQL as a final check.
+  By default, the test run is 'quick and dirty' - only good enough as a check before commit coding. Instead of using PostgreSQL the tests use an in-memory Sqlite database, which causes two problems:
+
+    1. In production you have to PostgreSQL, so any subtleties of this are missed
+    2. The search system relies on PostgreSQL, so these (50 or so) tests are skipped.
+
+  So when working on search, or doing changes closely related to the database, it is wise to test against PostgreSQL - see the next section on Configuring Tests.
+
+
+Configuring tests
+-----------------
+
+The default way to run tests is defined in test.ini (which is the default config file for nose - change it with option "--with-pylons"). This specifies to use Sqlite and sets faster_db_test_hacks.
+
+To use a PostgreSQL database, specify it in your development.ini in the value for `sqlalchemy.url` and then tell nose to use the test-core.ini::
+
+    nosetests ckan/tests --ckan --with-pylons=test-core.ini
+
+The test suite takes a long time to run against standard PostgreSQL (approx. 15 minutes, or close to an hour on Ubuntu/10.04 Lucid).
+
+This can be improved to between 5 and 15 minutes by running PostgreSQL in memory and turning off durability, as described at <http://www.postgresql.org/docs/9.0/static/non-durability.html>. 
 
 
 Development
@@ -289,7 +293,7 @@ There are a number of stakeholders in the direction of the project, so we discus
 
 New developers should aquaint themselves with the documentation (see below). Proposed changes should be made on a personal CKAN fork (on BitBucket for example). Request merging with the mainline via the ckan-discuss list.
 
-We have policies for check-ins that ensure the build doesn't break etc. on https://knowledgeforge.net/ckan/trac#ProjectProcessesandPolicies which should be followed unless someone builds concensus to change it.
+We have policies for check-ins that ensure the build doesn't break etc. on http://ckan.org/#ProjectProcessesandPolicies which should be followed unless someone builds concensus to change it.
 
 
 Documentation
@@ -298,7 +302,7 @@ Documentation
 The home page for the CKAN project is: http://ckan.org
 
 This README file is part of the Developer Documentation, viewable at:
-http://knowledgeforge.net/ckan/doc/ckan/index.html and stored in the CKAN
+http://packages.python.org/ckan/ and stored in the CKAN
 repo at ``ckan/doc``. 
 
 The Developer Docs are built using `Sphinx <http://sphinx.pocoo.org/>`_:
@@ -308,7 +312,7 @@ The Developer Docs are built using `Sphinx <http://sphinx.pocoo.org/>`_:
 The docs are uploaded to packages.python.org/ckan/ and also (via dav) to
 http://knowledgeforge.net/ckan/doc/ckan/ (http://knowledgeforge.net/ location
 is for backwards compatability).
- 
+
 
 Contributors
 ============

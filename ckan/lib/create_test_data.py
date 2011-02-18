@@ -102,7 +102,6 @@ class CreateTestData(cli.CkanCommand):
         assert isinstance(extra_group_names, (list, tuple))
         import ckan.model as model
         model.Session.remove()
-        model.repo.init_db(conditional=True)
         new_user_names = extra_user_names
         new_group_names = set()
         
@@ -154,6 +153,7 @@ class CreateTestData(cli.CkanCommand):
                                 self.tag_names.append(tag_name)
                                 model.Session.add(tag)    
                             pkg.tags.append(tag)
+                            model.Session.flush()
                     elif attr == 'groups':
                         if isinstance(val, (str, unicode)):
                             group_names = val.split()
@@ -208,6 +208,10 @@ class CreateTestData(cli.CkanCommand):
                 model.Session.add(user)
                 self.user_names.append(user_name)
                 needs_commit = True
+
+        if needs_commit:
+            model.repo.commit_and_remove()
+            needs_commit = False
 
         # setup authz for admins
         for pkg_name, admins in admins_list.items():
@@ -283,8 +287,6 @@ class CreateTestData(cli.CkanCommand):
     def create(self, commit_changesets=False):
         import ckan.model as model
         model.Session.remove()
-        # if a user doesn't exist, the repo needs init
-        model.repo.init_db(conditional=True)
         self.create_user()
         rev = model.repo.new_revision()
         # same name as user we create below
@@ -557,10 +559,13 @@ family_items = [{'name':u'abraham', 'title':u'Abraham'},
                 {'name':u'beer', 'title':u'Beer'},
                 {'name':u'bart', 'title':u'Bart'},
                 {'name':u'lisa', 'title':u'Lisa'},
+                {'name':u'marge', 'title':u'Marge'},
                 ]
 family_relationships = [('abraham', 'parent_of', 'homer'),
                         ('homer', 'parent_of', 'bart'),
                         ('homer', 'parent_of', 'lisa'),
+                        ('marge', 'parent_of', 'lisa'),
+                        ('marge', 'parent_of', 'bart'),
                         ('homer_derived', 'derives_from', 'homer'),
                         ('homer', 'depends_on', 'beer'),
                         ]
@@ -619,7 +624,7 @@ gov_items = [
         'temporal_granularity':'weeks',
         'temporal_coverage-from':'2008-11-24',
         'temporal_coverage-to':'2009-11-24',
-        'national_statistic':'yes',
+        'national_statistic':'no',
         'import_source':'DECC-Jan-09',
         }
      }

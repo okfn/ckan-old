@@ -12,7 +12,7 @@
 <head>
   <title>${page_title()} - ${g.site_title}</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <link rel="shortcut icon" href="http://assets.okfn.org/images/logo/favicon.ico" type="image/x-icon" />
+  <link rel="shortcut icon" href="http://assets.okfn.org/p/ckan/img/ckan.ico" type="image/x-icon" />
   <py:choose>
   <py:when test="defined('optional_feed')">
     ${optional_feed()}
@@ -38,9 +38,8 @@
         var ckan_user = $.cookie("ckan_display_name");
         if (ckan_user) {
             ckan_user = eval(ckan_user); // get rid of spurious quotes
-            $("#ckan_user_name")[0].innerHTML = ckan_user;
-            $(".ckan_logged_out").hide();
-            $(".ckan_logged_in").show();
+            $(".ckan-logged-out").hide();
+            $(".ckan-logged-in").show();
         }
     });
   </script>
@@ -49,7 +48,7 @@
   </py:if>
 </head>
 
-<body class="${value_of('body_class', default='')}">
+<body class="${value_of('body_class', default=lambda: c.body_class)()}">
 
 <div id="wrapper" class="hfeed">
   <div id="header">
@@ -65,18 +64,18 @@
           </py:if>
         </a>
       </h1>
-      <div id="site-description">${getattr(g, 'site_description', '')}</div>
+      <div id="site-description">${g.site_description}</div>
     </div> <!-- /branding -->
 
     <div id="top-bar">
       <div id="top-bar-login">
-        <span class="ckan_logged_in" style="display: none;">
-                Logged in as <strong>${h.icon('user')} <span id="ckan_user_name">username</span></strong>
-                &middot; <a href="${h.url_for(controller='user',action=None,id=None)}">My account</a>
-          &middot; <a href="${h.url_for('/logout_openid')}">Logout</a>
+        <span class="ckan-logged-in" style="display: none;">
+          <a href="${h.url_for(controller='user',action=None,id=None)}">${h.icon('user')} My account</a>
+          &middot; <a href="${h.url_for('/user/logout')}">Logout</a>
         </span>
-        <span class="ckan_logged_out">
-                <a href="${h.url_for(controller='user',action='login', id=None)}">Login with ${h.icon('openid')} OpenID</a>
+        <span class="ckan-logged-out">
+                <a href="${h.url_for(controller='user',action='login', id=None)}">Login</a> &middot;
+                <a href="${h.url_for(controller='user',action='register', id=None)}">Register</a>
         </span>
       </div>
 
@@ -107,12 +106,19 @@
   </div><!-- #header -->  
 
   <div id="main"> 
+  <py:with vars="messages = list(h._flash.pop_messages())">
+  <div class="flash-banner-box" py:if="len(messages)">
+    <div class="flash-banner ${m.category}" py:for="m in messages">
+      ${m.message}
+    </div>
+  </div>
+  </py:with>
+
     <div id="container"> 
       <div id="minornavigation">
         <minornavigation></minornavigation> 
       </div>
       <div id="content" role="main"> 
-
         <div class="page type-page hentry">
           <div class="entry-content">
             <!-- support both options for defining content -->
@@ -156,7 +162,9 @@
             <ul>
                 <li>${h.nav_link(c, _('Search'), controller='package', action='search', id=None)}</li>                
                 <li py:if="h.am_authorized(c, actions.PACKAGE_CREATE)">${h.nav_link(c, _('Register a new Package'), controller='package', action='new', id=None)}</li>
-                <li>${h.nav_link(c, _('Revision History'), controller='revision', action='index', id=None)}</li>                
+                <li>${h.nav_link(c, _('Revision History'), controller='revision', action='index', id=None)}</li>
+                <li>${h.link_to(_('API'), h.url_for(controller='rest', action='get_api', id=None))}</li>
+                <li>${h.link_to(_('API Docs'), 'http://ckan.org/wiki/API')}</li>
             </ul>
           </div>
           </li>
@@ -233,7 +241,7 @@
     </div><!-- #site-info -->
 
     <div id="site-generator">
-      <a href="http://okfn.org/projects/ckan/"
+      <a href="http://ckan.org/"
         title="CKAN" rel="generator">
         Powered by CKAN
         <span i18n:msg="version">

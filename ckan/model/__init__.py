@@ -1,6 +1,7 @@
 from pylons import config
 from sqlalchemy import MetaData, __version__ as sqav
 from sqlalchemy.schema import Index
+from paste.deploy.converters import asbool
 
 import meta
 from domain_object import DomainObjectOperation
@@ -44,24 +45,41 @@ class Repository(vdm.sqlalchemy.Repository):
 
     inited = False
 
-    def init_db(self, conditional=False):
-        # sqlite database needs to be recreated each time as the memory database
-        # is lost.
-        if not self.inited or self.metadata.bind.name == 'sqlite':
-            super(Repository, self).init_db()
-
+    def init_db(self):
+        '''Ensures tables, const data and some default config is created.
+        This method MUST be run before using CKAN for the first time.
+        Before this method is run, you can either have a clean db or tables
+        that may have been setup with either upgrade_db or a previous run of
+        init_db.
+        '''
         self.session.rollback()
         self.session.remove()
-        self.add_initial_data()
+        # sqlite database needs to be recreated each time as the
+        # memory database is lost.
+        if not self.inited or self.metadata.bind.name == 'sqlite':
+            # this creates the tables, which isn't required inbetween tests
+            # that have simply called rebuild_db.
+            super(Repository, self).init_db()
+        else:
+            self.init_const_data()
+            self.init_configuration_data()
 
-    def add_initial_data(self):
-        # assume if this exists everything else does too
-        if not User.by_name(PSEUDO_USER__VISITOR):
-            visitor = User(name=PSEUDO_USER__VISITOR)
-            logged_in = User(name=PSEUDO_USER__LOGGED_IN)
-            Session.add(visitor)
-            Session.add(logged_in)
-        validate_authorization_setup()
+    def init_const_data(self):
+        '''Creates 'constant' objects that should always be there in
+        the database. If they are already there, this method does nothing.'''
+        for username in (PSEUDO_USER__LOGGED_IN,
+                         PSEUDO_USER__VISITOR):
+            if not User.by_name(username):
+                user = User(name=username)
+                Session.add(user)
+        Session.flush() # so that these objects can be used
+                        # straight away
+        init_authz_const_data()
+
+    def init_configuration_data(self):
+        '''Default configuration, for when CKAN is first used out of the box.
+        This state may be subsequently configured by the user.'''
+        init_authz_configuration_data()
         if Session.query(Revision).count() == 0:
             rev = Revision()
             rev.author = 'system'
@@ -70,28 +88,41 @@ class Repository(vdm.sqlalchemy.Repository):
         self.commit_and_remove()   
 
     def create_db(self):
+        '''Ensures tables, const data and some default config is created.
+        i.e. the same as init_db APART from when running tests, when init_db
+        has shortcuts.
+        '''
         self.metadata.create_all(bind=self.metadata.bind)    
         # creation this way worked fine for normal use but failed on test with
         # OperationalError: (OperationalError) no such table: xxx
         # 2009-09-11 interesting all the tests will work if you run them after
         # doing paster db clean && paster db upgrade !
         # self.upgrade_db()
-        self.setup_migration_version_control(self.latest_migration_version())
-        self.create_indexes()
+        if self.metadata.bind.name != 'sqlite':
+            self.setup_migration_version_control(self.latest_migration_version())
+            self.create_indexes()
+        self.init_const_data()
+        self.init_configuration_data()
 
     def latest_migration_version(self):
         import migrate.versioning.api as mig
         version = mig.version(self.migrate_repository)
         return version
 
-    def clean_db(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
+    def rebuild_db(self):
+        '''Clean and init the db'''
+        if asbool(config.get('faster_db_test_hacks')):
+            # just delete data, leaving tables - this is faster
             self.delete_all()
         else:
-            super(Repository, self).clean_db()
+            # delete tables and data
+            self.clean_db()
+        self.session.remove()
+        self.init_db()
         self.session.flush()
-
+        
     def delete_all(self):
+        '''Delete all data from all tables.'''
         self.session.remove()
         ## use raw connection for performance
         connection = self.session.connection()
@@ -102,28 +133,27 @@ class Repository(vdm.sqlalchemy.Repository):
         for table in tables:
             connection.execute('delete from "%s"' % table.name)
         self.session.commit()
-        self.add_initial_data()
 
     def setup_migration_version_control(self, version=None):
         import migrate.versioning.exceptions
         import migrate.versioning.api as mig
         # set up db version control (if not already)
         try:
-            mig.version_control(self.metadata.bind.url,
+            mig.version_control(self.metadata.bind,
                     self.migrate_repository, version)
         except migrate.versioning.exceptions.DatabaseAlreadyControlledError:
             pass
 
     def create_indexes(self):
-        if config.get('faster_db_test_hacks', False) != 'False':
-            return
+        assert meta.engine.name in ('postgres', 'postgresql'), \
+            'Only postgresql engine supported (not %s).' % meta.engine.name
         import os
         from migrate.versioning.script import SqlScript
         from sqlalchemy.exceptions import ProgrammingError
         try:
             path = os.path.join(self.migrate_repository,
                                 'versions',
-                                '021_postgres_upgrade.sql')
+                                '021_postgresql_upgrade.sql')
             script = SqlScript(path)
             script.run(meta.engine, step=None)
         except ProgrammingError, e:
@@ -137,9 +167,8 @@ class Repository(vdm.sqlalchemy.Repository):
         '''
         import migrate.versioning.api as mig
         self.setup_migration_version_control()
-        mig.upgrade(self.metadata.bind.url, self.migrate_repository, version=version)
-        validate_authorization_setup()
-
+        mig.upgrade(self.metadata.bind, self.migrate_repository, version=version)
+        self.init_const_data()
 
 
 repo = Repository(metadata, Session,

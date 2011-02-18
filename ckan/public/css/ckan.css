@@ -21,7 +21,6 @@ a:visited {
   color: #b22;
   text-decoration: none;
 }
-
 #main a:visited {
   text-decoration: none;
 }
@@ -39,6 +38,43 @@ a:hover {
 }
 
 /* ===========================
+ * Flash messages
+*/
+
+.flash-banner-box {
+  margin-top: -20px;
+  margin-bottom: 10px;
+}
+
+.flash-banner {
+  width: auto;
+  line-height: 1em;
+  font-size: 14px;
+  padding: 0.8em 1.5%; 
+  font-weight: bold;
+  text-align: center;
+  border-bottom: solid 1px #9f9f9f;
+  color: #133362;
+}
+
+.flash-banner.notice {
+  background: #f4a83d;
+  border-bottom-color: #dddddd;
+}
+
+.flash-banner.success {
+  background-color: #e7f9e0;
+  border-bottom-color: #ccc;
+  color: #2d6b00;
+}
+
+.flash-banner.error {
+  background-color: #ffeae8;
+  border-bottom-color: #ccc;
+  color: #b50000;
+}
+
+/* ===========================
  * Masthead
 */
 
@@ -53,7 +89,7 @@ a:hover {
   float: left;
   font-size: 40px;
   margin: 0;
-  padding: 0;
+  padding: 0 0 5px 0;
   font-weight: normal;
   letter-spacing: -0.032em;
 }
@@ -74,21 +110,22 @@ a:hover {
   display: block;
   border: none;
   margin: 0;
+  max-height: 50px;
 }
 
 #site-description {
   width:auto;
   float: left;
   clear: left;
-  color: #888;
+  color: #000;
   font-style: italic;
   font-size: 15px;
   letter-spacing: normal;
   text-transform: none;
   margin: 0;
-  margin-top: 5px;
-  padding: 0 0 0 50px;
-  font-family: Georgia, serif;
+  margin-top: -5px;
+  padding: 0 0 10px 0;
+  font-family: 'Lucida Grande', 'Lucida Sans Unicode', Lucida, Arial, Helvetica, sans-serif;
 }
 
 /* ===========================
@@ -109,6 +146,10 @@ a:hover {
 
 #top-bar .search-form input.search {
   width: 120px;
+}
+
+#top-bar-login .ckan-logged-in img {
+  margin-bottom: -3px;
 }
 
 
@@ -376,6 +417,21 @@ form #log_message {
   margin-bottom: 12px;
 }
 
+form.simple-form label {
+    display: inline-block; 
+    float: left;
+    min-width: 40%;
+}
+
+form.simple-form fieldset input {
+    border: 1px solid #E7E7E7;
+    padding: 0.3em; 
+    width: 40%;
+}
+
+form.simple-form textarea {
+    width: 99%;
+}
 
 /* ===========================
  * Tables
@@ -746,14 +802,14 @@ ul.package_formats li {
   display: inline;
 }
 
-#content .package h3, #content h4, 
+#content .package .subsection h3,
 #content #comments h3, #content #comments h4 {
   background-color: #444;
   padding: 10px;
   color: white;
 }
 
-.package h4 {
+.package h3, .package h4 {
 	font-weight: bold;
 	margin: 1em 0 0.6em 0;
 }

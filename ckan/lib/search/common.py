@@ -214,9 +214,8 @@ class QueryParser(object):
             if colon_pos != -1:
                 field = token[:colon_pos]
                 value = token[colon_pos+1:]
-                value = value.strip('"').strip("'")
-                if len(value):
-                    self._combined_fields.add(field, value)
+                value = value.strip('"').strip("'").strip()
+                self._combined_fields.add(field, value)
             else:
                 self._combined_terms.append(token)
     
@@ -265,7 +264,7 @@ class SearchIndex(object):
     
     def update_dict(self, data):
         """ Update data from a dictionary. """
-        log.warn("NOOP Index: %s" % ",".join(data.keys()))
+        log.debug("NOOP Index: %s" % ",".join(data.keys()))
     
     def update_entity(self, entity):
         """ Update data from a domain object. """
@@ -274,7 +273,7 @@ class SearchIndex(object):
     
     def remove_dict(self, data):
         """ Delete an index entry uniquely identified by ``data``. """
-        log.warn("NOOP Delete: %s" % ",".join(data.keys()))
+        log.debug("NOOP Delete: %s" % ",".join(data.keys()))
         
     def remove_entity(self, entity):
         """ Delete ``entity``. """
@@ -282,6 +281,6 @@ class SearchIndex(object):
         
     def clear(self):
         """ Delete the complete index. """
-        log.warn("NOOP Index reset")
+        log.debug("NOOP Index reset")
         
 class NoopSearchIndex(SearchIndex): pass

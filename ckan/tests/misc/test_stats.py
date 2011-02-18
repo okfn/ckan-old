@@ -130,6 +130,8 @@ class TestStats(TestController):
             group = model.Group.by_name(group_name)
             assert group, group_name
             add_user_to_role(user, model.authz.Role.ADMIN, group)
+
+        model.Session.commit()
         
         res = Stats().top_package_owners()
         assert len(res) == 3, res
@@ -155,7 +157,7 @@ class TimedRevision(TestController):
         
     @classmethod
     def teardown_class(self):
-        model.repo.clean_db()
+        model.repo.rebuild_db()
 
     @classmethod
     def _create_old_objects(self, num_packages, date, object_class):
@@ -197,7 +199,7 @@ class TestRateStatsSimple(TimedRevision):
 
     @classmethod
     def teardown_class(self):
-        model.repo.clean_db()
+        model.repo.rebuild_db()
 
     def test_get_new_packages(self):
         new_pkgs = RevisionStats().get_new_packages()
@@ -264,7 +266,7 @@ class TestRateStats(TimedRevision):
 
     @classmethod
     def teardown_class(self):
-        model.repo.clean_db()
+        model.repo.rebuild_db()
 
     def test_get_new_packages_by_week(self):
         pkgs_by_week = RevisionStats().get_by_week('new_packages')

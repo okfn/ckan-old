@@ -32,10 +32,6 @@ def make_map():
     map.connect('about', '/about', controller='home', action='about')
     # CKAN API.
     map.connect('/api', controller='rest', action='get_api')
-    map.connect('/api/form/package/create', controller='form', action='package_create')
-    map.connect('/api/form/package/edit/:id', controller='form', action='package_edit')
-    map.connect('/api/form/harvestsource/create', controller='form', action='harvest_source_create')
-    map.connect('/api/form/harvestsource/edit/:id', controller='form', action='harvest_source_edit')
 
     map.connect('/api/search/:register', controller='rest', action='search')
     map.connect('/api/tag_counts', controller='rest', action='tag_counts')
@@ -101,10 +97,6 @@ def make_map():
 
     # CKAN API v1.
     map.connect('/api/1', controller='rest', action='get_api')
-    map.connect('/api/1/form/package/create', controller='form', action='package_create')
-    map.connect('/api/1/form/package/edit/:id', controller='form', action='package_edit')
-    map.connect('/api/1/form/harvestsource/create', controller='form', action='harvest_source_create')
-    map.connect('/api/1/form/harvestsource/edit/:id', controller='form', action='harvest_source_edit')
 
     map.connect('/api/1/search/:register', controller='rest', action='search')
     map.connect('/api/1/tag_counts', controller='rest', action='tag_counts')
@@ -157,10 +149,6 @@ def make_map():
 
     # CKAN API v2.
     map.connect('/api/2', controller='rest2', action='get_api')
-    map.connect('/api/2/form/package/create', controller='form2', action='package_create')
-    map.connect('/api/2/form/package/edit/:id', controller='form2', action='package_edit')
-    map.connect('/api/2/form/harvestsource/create', controller='form', action='harvest_source_create')
-    map.connect('/api/2/form/harvestsource/edit/:id', controller='form', action='harvest_source_edit')
 
     map.connect('/api/2/search/:register', controller='rest2', action='search')
     map.connect('/api/2/tag_counts', controller='rest2', action='tag_counts')
@@ -245,11 +233,11 @@ def make_map():
     map.connect('/tag/', controller='tag', action='index')
     map.connect('/tag/:id', controller='tag', action='read')
     map.redirect("/users/{url:.*}", "/user/{url}")
-    map.connect('/user/all', controller='user', action='all')
     map.connect('/user/edit', controller='user', action='edit')
+    map.connect('/user/register', controller='user', action='register')
     map.connect('/user/login', controller='user', action='login')
-    map.connect('/user/openid', controller='user', action='openid')
-    map.connect('/user/logout', controller='user', action='logout')
+    map.connect('/user/logged_in', controller='user', action='logged_in')
+    map.connect('/user/logged_out', controller='user', action='logged_out')
     map.connect('/user/apikey', controller='user', action='apikey')
     map.connect('/user/:id', controller='user', action='read')
     map.connect('/{controller}', action='index')

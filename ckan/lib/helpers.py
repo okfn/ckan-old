@@ -10,12 +10,13 @@ from webhelpers.html.tools import mail_to
 from webhelpers.html.tags import *
 from webhelpers.markdown import markdown
 from webhelpers import paginate
-from webhelpers.pylonslib import Flash as _Flash
 from webhelpers.text import truncate
+import webhelpers.date as date
 from pylons.decorators.cache import beaker_cache
 from routes import url_for, redirect_to
 from alphabet_paginate import AlphaPage
 from lxml.html import fromstring
+from ckan.i18n import get_available_locales
 
 try:
     from collections import OrderedDict # from python 2.7
@@ -27,6 +28,73 @@ try:
 except ImportError:
     import simplejson as json
 
+
+class Message(object):
+    """A message returned by ``Flash.pop_messages()``.
+
+    Converting the message to a string returns the message text. Instances
+    also have the following attributes:
+
+    * ``message``: the message text.
+    * ``category``: the category specified when the message was created.
+    """
+
+    def __init__(self, category, message):
+        self.category=category
+        self.message=message
+
+    def __str__(self):
+        return self.message
+
+    __unicode__ = __str__
+
+    def __html__(self):
+        return escape(self.message)
+
+class _Flash(object):
+    
+    # List of allowed categories.  If None, allow any category.
+    categories = ["warning", "notice", "error", "success"]
+    
+    # Default category if none is specified.
+    default_category = "notice"
+
+    def __init__(self, session_key="flash", categories=None, default_category=None):
+        self.session_key = session_key
+        if categories is not None:
+            self.categories = categories
+        if default_category is not None:
+            self.default_category = default_category
+        if self.categories and self.default_category not in self.categories:
+            raise ValueError("unrecognized default category %r" % (self.default_category,))
+
+    def __call__(self, message, category=None, ignore_duplicate=False):
+        if not category:
+            category = self.default_category
+        elif self.categories and category not in self.categories:
+            raise ValueError("unrecognized category %r" % (category,))
+        # Don't store Message objects in the session, to avoid unpickling
+        # errors in edge cases.
+        new_message_tuple = (category, message)
+        from pylons import session
+        messages = session.setdefault(self.session_key, [])
+        # ``messages`` is a mutable list, so changes to the local variable are
+        # reflected in the session.
+        if ignore_duplicate:
+            for i, m in enumerate(messages):
+                if m[1] == message:
+                    if m[0] != category:
+                        messages[i] = new_message_tuple
+                        session.save()
+                    return    # Original message found, so exit early.
+        messages.append(new_message_tuple)
+        session.save()
+
+    def pop_messages(self):
+        from pylons import session
+        messages = session.pop(self.session_key, [])
+        session.save()
+        return [Message(*m) for m in messages]
 
 _flash = _Flash()
 
@@ -82,7 +150,7 @@ def am_authorized(c, action, domain_object=None):
         domain_object = model.System()
     return Authorizer.am_authorized(c, action, domain_object)
 
-def linked_user(user):
+def linked_user(user, maxlength=0):
     from ckan import model
     from urllib import quote
     if user in [model.PSEUDO_USER__LOGGED_IN, model.PSEUDO_USER__VISITOR]:
@@ -95,14 +163,17 @@ def linked_user(user):
     if user:
         _name = user.name if model.User.VALID_NAME.match(user.name) else user.id
         _icon = icon("user") + " "
-        return _icon + link_to(user.display_name, 
+        displayname = user.display_name
+        if maxlength and len(user.display_name) > maxlength:
+            displayname = displayname[:maxlength] + '...'
+        return _icon + link_to(displayname, 
                        url_for(controller='user', action='read', id=_name))
 
 def group_name_to_title(name):
     from ckan import model
     group = model.Group.by_name(name)
     if group is not None:
-        return group.title
+        return group.display_name
     return name
 
 def markdown_extract(text):

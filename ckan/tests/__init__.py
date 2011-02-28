@@ -24,11 +24,10 @@ import pkg_resources
 import paste.fixture
 import paste.script.appinstall
 from paste.deploy import loadapp
-from routes import url_for
 
 from ckan.lib.create_test_data import CreateTestData
 from ckan.lib import search
-from ckan.lib.helpers import _flash
+from ckan.lib.helpers import _flash, url_for
 import ckan.model as model
 
 __all__ = ['url_for',
@@ -342,6 +341,10 @@ def is_search_supported():
     return supported_db
 
 def is_regex_supported():
+    supported_db = "sqlite" not in config.get('sqlalchemy.url')
+    return supported_db
+
+def is_migration_supported():
     supported_db = "sqlite" not in config.get('sqlalchemy.url')
     return supported_db
 

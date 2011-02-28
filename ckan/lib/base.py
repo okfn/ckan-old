@@ -19,6 +19,7 @@ from genshi.template import MarkupTemplate
 from webhelpers.html import literal
 
 import ckan
+from ckan import i18n
 import ckan.lib.helpers as h
 from ckan.plugins import PluginImplementations, IGenshiStreamFilter
 from ckan.lib.helpers import json
@@ -80,22 +81,21 @@ class BaseController(WSGIController):
     log = logging.getLogger(__name__)
 
     def __before__(self, action, **params):
-        c.time_call_started = datetime.now()
 
         # what is different between session['user'] and environ['REMOTE_USER']
         c.__version__ = ckan.__version__
         c.user = request.environ.get('REMOTE_USER', None)
-        c.remote_addr = request.environ.get('REMOTE_ADDR', 'Unknown IP Address')
-        if c.remote_addr == 'localhost' or c.remote_addr == '127.0.0.1':
-            # see if it was proxied
-            c.remote_addr = request.environ.get('HTTP_X_FORWARDED_FOR',
-                    '127.0.0.1')
+        # see if it was proxied first
+        c.remote_addr = request.environ.get('HTTP_X_FORWARDED_FOR', '')
+        if not c.remote_addr:
+            c.remote_addr = request.environ.get('REMOTE_ADDR', 'Unknown IP Address')
         if c.user:
             c.user = c.user.decode('utf8')
             c.author = c.user
         else:
             c.author = c.remote_addr
         c.author = unicode(c.author)
+        i18n.handle_request(request, c)
 
     def __call__(self, environ, start_response):
         """Invoke the Controller"""
@@ -108,8 +108,7 @@ class BaseController(WSGIController):
             model.Session.remove()
 
     def __after__(self, action, **params):
-        c.time_call_stopped = datetime.now()
-        self._write_call_timing()
+        return
 
     def _get_user(self, reference):
         return model.User.by_name(reference)
@@ -179,20 +178,6 @@ class BaseController(WSGIController):
         query = model.Session.query(model.User)
         user = query.filter_by(apikey=apikey).first()
         return user
-
-    def _write_call_timing(self):
-        if asbool(config.get('ckan.enable_call_timing', "False")):
-            call_duration = c.time_call_stopped - c.time_call_started
-            timing_data = {
-                "path": request.path, 
-                "started": c.time_call_started.isoformat(),
-                "duration": str(call_duration),
-            }
-            timing_msg = json.dumps(timing_data)
-            timing_file_path = os.path.join(timing_cache_path, c.time_call_started.isoformat())
-            timing_file = file(timing_file_path, 'w')
-            timing_file.write(timing_msg)
-            timing_file.close()
 
     def _get_timing_cache_path(self):
 

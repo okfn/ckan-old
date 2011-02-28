@@ -44,29 +44,51 @@ def init_model(engine):
 class Repository(vdm.sqlalchemy.Repository):
     migrate_repository = ckan.migration.__path__[0]
 
-    inited = False
+    tables_created = False
 
     def init_db(self):
-        # sqlite database needs to be recreated each time as the
-        # memory database is lost.
-        if not self.inited or self.metadata.bind.name == 'sqlite':
-            # this creates the tables, which isn't required inbetween tests
-            # that have simply called rebuild_db.
-            super(Repository, self).init_db()
-
+        '''Ensures tables, const data and some default config is created.
+        This method MUST be run before using CKAN for the first time.
+        Before this method is run, you can either have a clean db or tables
+        that may have been setup with either upgrade_db or a previous run of
+        init_db.
+        '''
         self.session.rollback()
         self.session.remove()
-        self.add_initial_data()
+        # sqlite database needs to be recreated each time as the
+        # memory database is lost.
+        if self.metadata.bind.name == 'sqlite':
+            # this creates the tables, which isn't required inbetween tests
+            # that have simply called rebuild_db.
+            self.create_db()
+        else:
+            if not self.tables_created:
+                self.upgrade_db()
+                self.init_configuration_data()
+                self.tables_created = True
 
-    def add_initial_data(self):
-        # assume if this exists everything else does too
-        if not User.by_name(PSEUDO_USER__VISITOR):
-            visitor = User(name=PSEUDO_USER__VISITOR)
-            logged_in = User(name=PSEUDO_USER__LOGGED_IN)
-            Session.add(visitor)
-            Session.add(logged_in)
+    def clean_db(self):
+        metadata = MetaData(self.metadata.bind)
+        metadata.reflect()
+        metadata.drop_all()
+        self.tables_created = False
+
+    def init_const_data(self):
+        '''Creates 'constant' objects that should always be there in
+        the database. If they are already there, this method does nothing.'''
+        for username in (PSEUDO_USER__LOGGED_IN,
+                         PSEUDO_USER__VISITOR):
+            if not User.by_name(username):
+                user = User(name=username)
+                Session.add(user)
         Session.flush() # so that these objects can be used
-        validate_authorization_setup()
+                        # straight away
+        init_authz_const_data()
+
+    def init_configuration_data(self):
+        '''Default configuration, for when CKAN is first used out of the box.
+        This state may be subsequently configured by the user.'''
+        init_authz_configuration_data()
         if Session.query(Revision).count() == 0:
             rev = Revision()
             rev.author = 'system'
@@ -75,15 +97,13 @@ class Repository(vdm.sqlalchemy.Repository):
         self.commit_and_remove()   
 
     def create_db(self):
+        '''Ensures tables, const data and some default config is created.
+        i.e. the same as init_db APART from when running tests, when init_db
+        has shortcuts.
+        '''
         self.metadata.create_all(bind=self.metadata.bind)    
-        # creation this way worked fine for normal use but failed on test with
-        # OperationalError: (OperationalError) no such table: xxx
-        # 2009-09-11 interesting all the tests will work if you run them after
-        # doing paster db clean && paster db upgrade !
-        # self.upgrade_db()
-        if self.metadata.bind.name != 'sqlite':
-            self.setup_migration_version_control(self.latest_migration_version())
-            self.create_indexes()
+        self.init_const_data()
+        self.init_configuration_data()
 
     def latest_migration_version(self):
         import migrate.versioning.api as mig
@@ -92,7 +112,7 @@ class Repository(vdm.sqlalchemy.Repository):
 
     def rebuild_db(self):
         '''Clean and init the db'''
-        if asbool(config.get('faster_db_test_hacks')):
+        if self.tables_created:
             # just delete data, leaving tables - this is faster
             self.delete_all()
         else:
@@ -114,6 +134,11 @@ class Repository(vdm.sqlalchemy.Repository):
         for table in tables:
             connection.execute('delete from "%s"' % table.name)
         self.session.commit()
+        ##add default data
+        self.init_const_data()
+        self.init_configuration_data()
+        self.session.commit()
+
 
     def setup_migration_version_control(self, version=None):
         import migrate.versioning.exceptions
@@ -124,23 +149,6 @@ class Repository(vdm.sqlalchemy.Repository):
                     self.migrate_repository, version)
         except migrate.versioning.exceptions.DatabaseAlreadyControlledError:
             pass
-
-    def create_indexes(self):
-        assert meta.engine.name in ('postgres', 'postgresql'), \
-            'Search indexing - only Postgresql engine supported (not %s).' %\
-            meta.engine.name
-        import os
-        from migrate.versioning.script import SqlScript
-        from sqlalchemy.exceptions import ProgrammingError
-        try:
-            path = os.path.join(self.migrate_repository,
-                                'versions',
-                                '021_postgresql_upgrade.sql')
-            script = SqlScript(path)
-            script.run(meta.engine, step=None)
-        except ProgrammingError, e:
-            if not 'already exists' in repr(e):
-                raise
 
     def upgrade_db(self, version=None):
         '''Upgrade db using sqlalchemy migrations.
@@ -153,13 +161,12 @@ class Repository(vdm.sqlalchemy.Repository):
         import migrate.versioning.api as mig
         self.setup_migration_version_control()
         mig.upgrade(self.metadata.bind, self.migrate_repository, version=version)
-        self.add_initial_data()
+        self.init_const_data()
         
         ##this prints the diffs in a readable format
         ##import pprint
         ##from migrate.versioning.schemadiff import getDiffOfModelAgainstDatabase
         ##pprint.pprint(getDiffOfModelAgainstDatabase(self.metadata, self.metadata.bind).colDiffs)
-
 
 repo = Repository(metadata, Session,
         versioned_objects=[Package, PackageTag, Resource, ResourceGroup, PackageExtra, PackageGroup, Group]

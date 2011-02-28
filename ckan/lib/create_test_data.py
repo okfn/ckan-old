@@ -40,6 +40,8 @@ class CreateTestData(cli.CkanCommand):
             self.create_basic_test_data()
         elif cmd == 'user':
             self.create_user()
+            print 'Created user %r with password %r and apikey %r' % ('tester',
+                    'tester', 'tester')
         elif cmd == 'search':
             self.create_search_test_data()
         elif cmd == 'gov':
@@ -75,7 +77,8 @@ class CreateTestData(cli.CkanCommand):
         import ckan.model as model
         tester = model.User.by_name(u'tester')
         if tester is None:
-            tester = model.User(name=u'tester', apikey=u'tester')
+            tester = model.User(name=u'tester', apikey=u'tester',
+                password=u'tester')
             model.Session.add(tester)
             model.Session.commit()
         model.Session.remove()
@@ -132,8 +135,8 @@ class CreateTestData(cli.CkanCommand):
                     elif attr == 'resources':
                         assert isinstance(val, (list, tuple))
                         for res_dict in val:
-                            non_extras = dict([(unicode(k), unicode(v)) for k, v in res_dict.items() if k != 'extras'])
-                            extras = dict([(unicode(k), unicode(v)) for k, v in res_dict.get('extras', {}).items()])
+                            non_extras = dict([(str(k), unicode(v)) for k, v in res_dict.items() if k != 'extras'])
+                            extras = dict([(str(k), unicode(v)) for k, v in res_dict.get('extras', {}).items()])
                             pkg.add_resource(extras=extras, **non_extras)
                     elif attr == 'tags':
                         if isinstance(val, (str, unicode)):
@@ -284,7 +287,6 @@ class CreateTestData(cli.CkanCommand):
     def create(cls, commit_changesets=False):
         import ckan.model as model
         model.Session.remove()
-        cls.create_user()
         rev = model.repo.new_revision()
         # same name as user we create below
         rev.author = cls.author
@@ -370,18 +372,21 @@ left arrow <
         david.packages = [pkg1, pkg2]
         roger.packages = [pkg1]
         # authz
-        joeadmin = model.User(name=u'joeadmin')
-        annafan = model.User(name=u'annafan', about=u'I love reading Annakarenina')
-        russianfan = model.User(name=u'russianfan')
-        testsysadmin = model.User(name=u'testsysadmin')
-        for obj in [joeadmin, annafan, russianfan, testsysadmin]:
-            model.Session.add(obj)
-        cls.user_names.extend([u'joeadmin', u'annafan', u'russianfan', u'testsysadmin'])
+        model.Session.add_all([
+            model.User(name=u'tester', apikey=u'tester', password=u'tester'),
+            model.User(name=u'joeadmin'),
+            model.User(name=u'annafan', about=u'I love reading Annakarenina'),
+            model.User(name=u'russianfan'),
+            model.User(name=u'testsysadmin'),
+            ])
+        cls.user_names.extend([u'tester', u'joeadmin', u'annafan', u'russianfan', u'testsysadmin'])
         model.repo.commit_and_remove()
 
         visitor = model.User.by_name(model.PSEUDO_USER__VISITOR)
         anna = model.Package.by_name(u'annakarenina')
         war = model.Package.by_name(u'warandpeace')
+        annafan = model.User.by_name(u'annafan')
+        russianfan = model.User.by_name(u'russianfan')
         model.setup_default_user_roles(anna, [annafan])
         model.setup_default_user_roles(war, [russianfan])
         model.add_user_to_role(visitor, model.Role.ADMIN, war)
@@ -630,7 +635,7 @@ gov_items = [
         'temporal_granularity':'weeks',
         'temporal_coverage-from':'2008-11-24',
         'temporal_coverage-to':'2009-11-24',
-        'national_statistic':'yes',
+        'national_statistic':'no',
         'import_source':'DECC-Jan-09',
         }
      }

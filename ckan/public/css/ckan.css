@@ -48,16 +48,17 @@ a:hover {
 
 .flash-banner {
   width: auto;
-  font-size: 1.1em;
-  padding: 0.6em;
+  line-height: 1em;
+  font-size: 14px;
+  padding: 0.8em 1.5%; 
   font-weight: bold;
   text-align: center;
-  border-bottom: 2px solid #333;
+  border-bottom: solid 1px #9f9f9f;
   color: #133362;
 }
 
 .flash-banner.notice {
-  background-color: #dde7ef;
+  background: #f4a83d;
   border-bottom-color: #dddddd;
 }
 
@@ -406,6 +407,10 @@ form #log_message {
 
 .entry-content label {
   font-size: 14px;
+}
+
+#content form.ckan.package_create_form dt {
+  clear: both; 
 }
 
 #content form.ckan.package_create_form dl, #content form.ckan.package_create_form dd {
@@ -915,4 +920,59 @@ p.atom-feed-link a {
 
 p.atom-feed-link.package-history-link {
   float: none;
+}
+
+/* ===================== */
+/* = User Listing      = */
+/* ===================== */
+
+body.user-list #content {
+  margin-right: 20px;
+}
+
+ul.userlist, ul.userlist ul {
+  list-style-type: none;
+  margin: 0;
+}
+
+ul.userlist li.user {
+  display: inline-block;
+  width: 200px;
+  padding: 5px;
+  font-size: 90%;
+  margin-bottom: 15px;
+}
+
+ul.userlist li ul span.edits {
+  color: #333;
+  font-size: 110%;
+  font-weight: bold;
+  margin-left: 3px;
+}
+
+ul.userlist li.user .username {
+}
+
+#content ul.userlist .username img {
+  margin-bottom: -3px;
+}
+
+ul.userlist .created {
+  font-size: 80%;
+}
+
+ul.userlist .badge {
+  color: #fc0;
+}
+
+body.user-list .sort {
+  float: right;
+}
+
+body.user-list .sort a {
+  font-size: 85%;
+  background: #eee;
+  padding: 5px;
+  border-bottom: 1px solid #ccc; 
+  border-right: 1px solid #ccc; 
 }

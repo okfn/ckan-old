@@ -29,6 +29,7 @@ def make_map():
     map.connect('guide', config.get('guide_url', 'http://wiki.okfn.org/ckan/doc/'), _static=True)
     map.connect('license', '/license', controller='home', action='license')
     map.connect('/language.js', controller='home', action='language')
+    map.connect('/locale', controller='home', action='locale')
     map.connect('about', '/about', controller='home', action='about')
     # CKAN API.
     map.connect('/api', controller='rest', action='get_api')
@@ -239,6 +240,7 @@ def make_map():
     map.connect('/user/logged_in', controller='user', action='logged_in')
     map.connect('/user/logged_out', controller='user', action='logged_out')
     map.connect('/user/apikey', controller='user', action='apikey')
+    map.connect('/user/me', controller='user', action='me')
     map.connect('/user/:id', controller='user', action='read')
     map.connect('/{controller}', action='index')
     map.connect('/:controller/{action}')

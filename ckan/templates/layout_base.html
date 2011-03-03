@@ -38,7 +38,6 @@
     $(document).ready(function() {
         var ckan_user = $.cookie("ckan_display_name");
         if (ckan_user) {
-            ckan_user = eval(ckan_user); // get rid of spurious quotes
             $(".ckan-logged-out").hide();
             $(".ckan-logged-in").show();
         }
@@ -72,7 +71,7 @@
     <div id="top-bar">
       <div id="top-bar-login">
         <span class="ckan-logged-in" style="display: none;">
-          <a href="${h.url_for(controller='user',action=None,id=None)}">${h.icon('user')} My account</a>
+          <a href="${h.url_for(controller='user',action='me',id=None)}">${h.icon('user')} My account</a>
           &middot; <a href="${h.url_for('/user/logout')}">Logout</a>
         </span>
         <span class="ckan-logged-out">
@@ -191,7 +190,7 @@
           <div class="textwidget">
             <ul>
               <li>
-                <a href="http://www.okfn.org/ckan/">Project Home Page</a>
+                <a href="http://ckan.org/">Project Home Page</a>
               </li>
               <li>
                 <a href="http://www.okfn.org/contact/">Contact Us</a>

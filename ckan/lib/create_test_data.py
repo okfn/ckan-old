@@ -40,6 +40,8 @@ class CreateTestData(cli.CkanCommand):
             self.create_basic_test_data()
         elif cmd == 'user':
             self.create_user()
+            print 'Created user %r with password %r and apikey %r' % ('tester',
+                    'tester', 'tester')
         elif cmd == 'search':
             self.create_search_test_data()
         elif cmd == 'gov':
@@ -75,11 +77,11 @@ class CreateTestData(cli.CkanCommand):
         import ckan.model as model
         tester = model.User.by_name(u'tester')
         if tester is None:
-            tester = model.User(name=u'tester', apikey=u'tester')
+            tester = model.User(name=u'tester', apikey=u'tester',
+                password=u'tester')
             model.Session.add(tester)
             model.Session.commit()
         model.Session.remove()
-        print 'Created user %s with apikey %s' % ('tester', 'tester')
         cls.user_names = [u'tester']
 
     @classmethod
@@ -285,7 +287,6 @@ class CreateTestData(cli.CkanCommand):
     def create(cls, commit_changesets=False):
         import ckan.model as model
         model.Session.remove()
-        cls.create_user()
         rev = model.repo.new_revision()
         # same name as user we create below
         rev.author = cls.author
@@ -301,12 +302,12 @@ class CreateTestData(cli.CkanCommand):
         pkg1.version = u'0.7a'
         pkg1.url = u'http://www.annakarenina.com'
         # put an & in the url string to test escaping
-        if 'alt_url' in model.PackageResource.get_extra_columns():
+        if 'alt_url' in model.Resource.get_extra_columns():
             configured_extras = ({'alt_url': u'alt123'},
                                  {'alt_url': u'alt345'})
         else:
             configured_extras = ({}, {})
-        pr1 = model.PackageResource(
+        pr1 = model.Resource(
             url=u'http://www.annakarenina.com/download/x=1&y=2',
             format=u'plain text',
             description=u'Full text. Needs escaping: " Umlaut: \xfc',
@@ -314,7 +315,7 @@ class CreateTestData(cli.CkanCommand):
             extras={'size': u'123'},
             **configured_extras[0]
             )
-        pr2 = model.PackageResource(
+        pr2 = model.Resource(
             url=u'http://www.annakarenina.com/index.json',
             format=u'json',
             description=u'Index of the novel',
@@ -371,18 +372,21 @@ left arrow <
         david.packages = [pkg1, pkg2]
         roger.packages = [pkg1]
         # authz
-        joeadmin = model.User(name=u'joeadmin')
-        annafan = model.User(name=u'annafan', about=u'I love reading Annakarenina')
-        russianfan = model.User(name=u'russianfan')
-        testsysadmin = model.User(name=u'testsysadmin')
-        for obj in [joeadmin, annafan, russianfan, testsysadmin]:
-            model.Session.add(obj)
-        cls.user_names.extend([u'joeadmin', u'annafan', u'russianfan', u'testsysadmin'])
+        model.Session.add_all([
+            model.User(name=u'tester', apikey=u'tester', password=u'tester'),
+            model.User(name=u'joeadmin'),
+            model.User(name=u'annafan', about=u'I love reading Annakarenina'),
+            model.User(name=u'russianfan'),
+            model.User(name=u'testsysadmin'),
+            ])
+        cls.user_names.extend([u'tester', u'joeadmin', u'annafan', u'russianfan', u'testsysadmin'])
         model.repo.commit_and_remove()
 
         visitor = model.User.by_name(model.PSEUDO_USER__VISITOR)
         anna = model.Package.by_name(u'annakarenina')
         war = model.Package.by_name(u'warandpeace')
+        annafan = model.User.by_name(u'annafan')
+        russianfan = model.User.by_name(u'russianfan')
         model.setup_default_user_roles(anna, [annafan])
         model.setup_default_user_roles(war, [russianfan])
         model.add_user_to_role(visitor, model.Role.ADMIN, war)
@@ -600,10 +604,12 @@ gov_items = [
         'geographic_granularity':'regional',
         'geographic_coverage':'100000: England',
         'department':'Department for Education',
+        'published_by':'Department for Education [3]',
+        'published_via':'',
         'temporal_granularity':'years',
         'temporal_coverage-from':'2008-6',
         'temporal_coverage-to':'2009-6',
-        'categories':'Health, well-being and Care',
+        'mandate':'',
         'national_statistic':'yes',
         'precision':'Numbers to nearest 10, percentage to nearest whole number',
         'taxonomy_url':'',
@@ -628,6 +634,9 @@ gov_items = [
         'geographic_granularity':'national',
         'geographic_coverage':'111100: United Kingdom (England, Scotland, Wales, Northern Ireland)',
         'department':'Department of Energy and Climate Change',
+        'published_by':'Department of Energy and Climate Change [4]',
+        'published_via':'',
+         'mandate':'',
         'temporal_granularity':'weeks',
         'temporal_coverage-from':'2008-11-24',
         'temporal_coverage-to':'2009-11-24',

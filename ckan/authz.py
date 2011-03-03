@@ -48,7 +48,6 @@ class Authorizer(object):
         if isinstance(username, str):
             username = username.decode('utf8')
         assert isinstance(username, unicode), type(username)
-        assert model.Action.is_valid(action), action
         for extension in cls.extensions:
             authorized = extension.is_authorized(username,
                                                  action,

@@ -967,6 +967,7 @@ class Harvester(CkanCommand):
 
     def remove_harvest_source(self, url):
         from ckan import model
+        model.repo.new_revision()
         sources = model.HarvestSource.filter(url=url)
         if sources.count() == 0:
             print "No such source"

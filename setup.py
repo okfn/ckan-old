@@ -61,8 +61,7 @@ setup(
     search-index = ckan.lib.cli:SearchIndexCommand
     ratings = ckan.lib.cli:Ratings
     changes = ckan.lib.cli:Changes
-    notifications = ckan.lib.cli:Notifications
-    harvester = ckan.lib.cli:Harvester
+    notify = ckan.lib.cli:Notification
     rights = ckan.lib.authztool:RightsCommand
     roles = ckan.lib.authztool:RolesCommand
     

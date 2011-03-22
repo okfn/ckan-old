@@ -157,7 +157,7 @@ class BaseRestController(BaseApiController):
             revs = model.Session.query(model.Revision).all()
             return self._finish_ok([rev.id for rev in revs])
         elif register == u'package' and not subregister:
-            query = ckan.authz.Authorizer().authorized_query(self._get_username(), model.Package)
+            query = ckan.authz.Authorizer().authorized_query(c.user, model.Package)
             packages = query.all()
             response_data = self._list_package_refs(packages)
             return self._finish_ok(response_data)
@@ -248,7 +248,7 @@ class BaseRestController(BaseApiController):
             response_data = [rel.as_dict(pkg1, ref_package_by=self.ref_package_by) for rel in relationships]
             return self._finish_ok(response_data)
         elif register == u'group':
-            group = model.Group.by_name(id)
+            group = self._get_group(id)
             if group is None:
                 response.status_int = 404
                 return ''
@@ -261,7 +261,7 @@ class BaseRestController(BaseApiController):
             #TODO check it's not none
             return self._finish_ok(_dict)
         elif register == u'tag':
-            obj = model.Tag.by_name(id) #TODO tags
+            obj = self._get_tag(id) #TODO tags
             if obj is None:
                 response.status_int = 404
                 return ''            
@@ -396,7 +396,7 @@ class BaseRestController(BaseApiController):
                 return 'This relationship between the packages was not found.'
             entity = existing_rels[0]
         elif register == 'group' and not subregister:
-            entity = model.Group.by_name(id)
+            entity = self._get_group(id)
             if entity == None:
                 response.status_int = 404
                 return 'Group was not found.'
@@ -489,7 +489,7 @@ class BaseRestController(BaseApiController):
             entity = existing_rels[0]
             revisioned_details = 'Package Relationship: %s %s %s' % (id, subregister, id2)
         elif register == 'group' and not subregister:
-            entity = model.Group.by_name(id)
+            entity = self._get_group(id)
             if not entity:
                 response.status_int = 404
                 return 'Group was not found.'
@@ -563,7 +563,7 @@ class BaseRestController(BaseApiController):
                 if (k in DEFAULT_OPTIONS.keys()):
                     options[k] = v
             options.update(params)
-            options.username = self._get_username()
+            options.username = c.user
             options.search_tags = False
             options.return_objects = False
             
@@ -666,9 +666,6 @@ class BaseRestController(BaseApiController):
                     'rating count': len(package.ratings)}
         return self._finish_ok(ret_dict)
 
-    def _get_username(self):
-        user = self._get_user_for_apikey()
-        return user and user.name or u''
 
     def _check_access(self, entity, action):
         # Checks apikey is okay and user is authorized to do the specified
@@ -679,7 +676,7 @@ class BaseRestController(BaseApiController):
         # Todo: Remove unused 'isOk' variable.
         isOk = False
 
-        self.rest_api_user = self._get_username()
+        self.rest_api_user = c.user
         log.debug('check access - user %r' % self.rest_api_user)
         
         if action and entity and not isinstance(entity, model.PackageRelationship):

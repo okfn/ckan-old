@@ -1,7 +1,7 @@
 import copy
 
 from ckan.controllers.rest import RestController
-from ckan.lib.base import _, request, response
+from ckan.lib.base import _, request, response, c
 from ckan.lib.cache import ckan_cache
 from ckan.lib.helpers import json
 import ckan.model as model
@@ -24,7 +24,7 @@ class PackageController(RestController):
         """
         Return a list of all packages
         """
-        query = ckan.authz.Authorizer().authorized_query(self._get_username(), model.Package)
+        query = ckan.authz.Authorizer().authorized_query(c.user, model.Package)
         packages = query.all()
         response_data = self._list_package_refs(packages)
         return self._finish_ok(response_data)
@@ -60,7 +60,7 @@ class PackageController(RestController):
     
     def create(self):
         if not self._check_access(model.System(), model.Action.PACKAGE_CREATE):
-            return json.dumps(_('Access denied'))
+            return self._finish_not_authz()
 
         # Create a Package.
         fs = self._get_standard_package_fieldset()
@@ -120,9 +120,8 @@ class PackageController(RestController):
     
     def update(self, id):
         entity = self._get_pkg(id)
-
         if entity is not None and not self._check_access(entity, model.Action.EDIT):
-            return json.dumps(_('Access denied'))
+            return self._finish_not_authz()
         
         if entity is None:
             response.status_int = 404
@@ -174,8 +173,7 @@ class PackageController(RestController):
             return _(u'Package was not found.')
         
         if not self._check_access(entity, model.Action.PURGE):
-            #response.status_int = 401
-            return json.dumps(_('Access denied'))
+            return self._finish_not_authz()
         
         rev = model.repo.new_revision()
         rev.author = self.rest_api_user
